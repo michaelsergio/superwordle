@@ -48,7 +48,7 @@ setup_base_tilemap:
     stx VMADDL 
 
     ; KB Row 1
-    ldx #$09
+    ldx #$A
     @kb_1:
         ldy #$0A
         sty VMDATAL
@@ -60,7 +60,7 @@ setup_base_tilemap:
     stx VMADDL 
 
     ; KB Row 2
-    ldx #$08
+    ldx #$9
     @kb_2:
         ldy #$0A
         sty VMDATAL
@@ -77,7 +77,7 @@ setup_base_tilemap:
     ldy #$42
     sty VMDATAL
     ; KB Row 3
-    ldx #$06
+    ldx #$07
     @kb_3:
         ldy #$0A
         sty VMDATAL

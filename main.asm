@@ -6,6 +6,7 @@
 .include "snes/graphics.asm"
 .include "snes/joycon.asm"
 .include "base_map.asm"
+.include "alpha_map.asm"
 .include "delay.asm"
 
 
@@ -177,7 +178,7 @@ generate_random_index:
 		.i16
 rts
 
-X_LIMIT = $8 ; max x-pos before next line
+X_LIMIT = $9 ; max x-pos before next line
 Y_LIMIT = $2 ; 2 
 
 move_sprite_left:
@@ -299,6 +300,9 @@ setup_video:
     ;load_block_to_vram main_tiles, $0000, (main_tiles_end - main_tiles)
     load_block_to_vram main_tiles, $0000, 32 * 16 * 16 * 4 / 8;  tiles * 4bpp * 16x16 / 8
 		
+
+    VRAM_FONT = $1000 + $100 ; offset by for ascii non-chars
+    load_block_to_vram font_sloppy_transparent, VRAM_FONT, font_sloppy_transparent_end - font_sloppy_transparent
     ;load_block_to_vram main_screen_graphic, $0000, (main_screen_graphic_end - main_screen_graphic)
     ;load_block_to_vram test_font_a_obj, $0000, $0020 ; 2 tiles, 2bpp * 8x8 / 8bits = 32 bytes
     ;load_block_to_vram font_charset, $0100, 640 ; 40 tiles, 2bpp * 8x8 / 8 bits= 
@@ -329,6 +333,7 @@ setup_video:
     ; TODO: Transfer OAM, CGRAM Data via DMA (2 channels)
     jsr reset_sprite_table
     jsr setup_base_tilemap
+    jsr setup_alpha_tilemap
     jsr load_sprite_selector
     ; jsr oam_load_man_with_pants
     ; jsr moam_load_mercilak
@@ -428,22 +433,42 @@ screen_pos_table_2:
 
 
 register_screen_settings:
-    lda #$01 | BG1_16x16
+    lda #$01 | BG1_16x16 | BG3_TOP
     sta BGMODE  ; mode 1
 
-    lda #$7C    ; Tile Map Location - set BG1 tile offset to $7C00 (Word addr) 
+    ;addr f800 in tv
+    lda #$7C    ; Tile Map Location - set BG1 tile offset to $7C00 >> 8 (Word addr) 
     sta BG1SC   ; BG1SC 
 
+
+    ;addr c000 in tv
+    lda #$60    ; Tile Map Location - set BG3 tile offset to $6000 (Word addr) 
+    sta BG3SC   ; BG3SC  aaaaaass bottom two are size
+
+    ;lda #(>VRAM_FONT | $00)
     lda #$00
     sta BG12NBA ; BG1 name base address to $0000 (word addr) (Tiles offset)
 
-    lda #(BG1_ON | SPR_ON) ; Enable BG1 and Sprites as main screen.
+    ;lda #>VRAM_FONT
+    lda #$01
+    sta BG34NBA ; BG3 name base address to 4k word 1 or $1000 (word addr) (Tiles offset)
+
+    ;lda #(BG1_ON | BG2_ON | SPR_ON) ; Enable BG1 and Sprites as main screen.
+    lda #(BG1_ON | BG3_ON | SPR_ON) ; Enable BG1 and Sprites as main screen.
     ;lda #SPR_ON ; Enable Sprites on The Main screen.
     sta TM
 
     lda #$FF    ; Scroll down 1 pixel (FF really 03FF 63) (add -1 in 2s complement)
     sta BG1VOFS
     sta BG1VOFS ; Set V offset Low, High, to FFFF for BG1
+
+    lda #$FB    ; Scroll down 1 pixel (FF really 03FF 63) (add -1 in 2s complement)
+    sta BG3VOFS
+    stz BG3VOFS ; Set V offset Low, High, to FFFF for BG1
+
+    lda #$FC    ;  scroll over 
+    sta BG3HOFS
+    stz BG3HOFS ; 
 rts
 
 
@@ -453,6 +478,9 @@ main_screen_palette:
 main_tiles:
 .incbin "assets/wordle.pic"
 main_tiles_end:
+font_sloppy_transparent:
+.incbin "assets/font_sloppy_transparent.pic"
+font_sloppy_transparent_end:
 
 .segment "BANK1"
 common_words:
