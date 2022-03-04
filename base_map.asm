@@ -1,3 +1,12 @@
+.macro base_guess_pos base, row, col
+    ldx #base + (((row + 3) * 16) * 2) + 6 + col
+    stx VMADDL 
+.endmacro
+
+.macro base_kb_pos base, row, col
+    ldx #base + (((row + 10) * 16) * 2) + 4 + col
+    stx VMADDL 
+.endmacro
 
 .macro put_grid_row_at base_loc, row, offset
     ldx #base_loc + ((row * 16) * 2) + offset
@@ -88,12 +97,56 @@ setup_base_tilemap:
     sty VMDATAL
     ldy #$46
     sty VMDATAL
+
+    @base_test_color:
+
+    base_guess_pos $7C00, 0, 0
+    ldy #GUESS_GREEN
+    sty VMDATAL
+    base_guess_pos $7C00, 0, 1
+    ldy #GUESS_YELLOW
+    sty VMDATAL
+    base_guess_pos $7C00, 0, 2
+    ldy #GUESS_DARK_GRAY
+    sty VMDATAL
+    base_guess_pos $7C00, 0, 3
+    ldy #GUESS_DARK_GRAY
+    sty VMDATAL
+    base_guess_pos $7C00, 0, 4
+    ldy #GUESS_DARK_GRAY
+    sty VMDATAL
+
+    @base_test_kb_color:
+    base_kb_pos $7C00, 1, 1
+    ldy #GUESS_GREEN
+    sty VMDATAL
+    base_kb_pos $7C00, 0, 6
+    ldy #GUESS_YELLOW
+    sty VMDATAL
+    base_kb_pos $7C00, 0, 9
+    ldy #GUESS_DARK_GRAY
+    sty VMDATAL
+    base_kb_pos $7C00, 0, 2
+    ldy #GUESS_DARK_GRAY
+    sty VMDATAL
+    base_kb_pos $7C00, 0, 3
+    ldy #GUESS_DARK_GRAY
+    sty VMDATAL
+    
 rts
+
+; Colors
+; EMPTY = $00
+GUESS_NO_FILL = $02     ; hasn't guessed yet
+GUESS_GREEN = $04       ; correct guess ; maps to tilemap $08 
+GUESS_YELLOW = $06      ; letter in word
+GUESS_DARK_GRAY = $08   ; wrong guess
+; LIGHT_GRAY = $0A  ; keyboard color
 
 put_grid_row:
     ldx #$05
     @guess_row:
-        ldy #$02
+        ldy #GUESS_NO_FILL
         sty VMDATAL
         dex
     bne @guess_row

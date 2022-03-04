@@ -3,6 +3,12 @@
     stx VMADDL  ; destination of vram
 .endmacro
 
+; With respect to the guesses
+.macro guess_pos row
+    ldx #$6000 + ((32 * (row + 3) + 6) * 2)
+    stx VMADDL  ; destination of vram
+.endmacro
+
 .macro write_str str
 .scope
     ldx #$0
@@ -32,9 +38,14 @@ setup_alpha_tilemap:
 
     alpha_pos 5, 12
     write_str letters_2
+
+    ; alpha_pos 6, 3
+    guess_pos 0
+    write_str test_word
 rts
 
 
 letters_0: .asciiz "Q W E R T Y U I O P"
 letters_1: .asciiz "A S D F G H J K L"
 letters_2: .asciiz "Z X C V B N M"
+test_word: .asciiz "S U P E R"
