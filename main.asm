@@ -21,16 +21,16 @@ wJoyPressed: .res 2, $0000
 mBG1HOFS: .res 1, $00
 sprite_x: .res 1, $00
 sprite_y: .res 1, $00
-joy_timer: .res 1, $00
-joy_timer_trigger: .res 1, $00
+joy_delay: .tag Delay
 
 answer: .res 5, $00
 random_index: .res 2, $0000
 
-SPRITE_X_INIT = $40
-SPRITE_Y_INIT = $A0
-SPRITE_X_MOVE = $10
-SPRITE_Y_MOVE = $10
+
+SPRITE_X_INIT = $0
+SPRITE_Y_INIT = $0
+SPRITE_X_MOVE = $0
+SPRITE_Y_MOVE = $0
 
 JOY_TIMER_DELAY = $0F
 
@@ -63,9 +63,12 @@ Reset:
     jsr generate_random_index
 
 
-    lda #JOY_TIMER_DELAY
-    sta joy_timer
-    stz joy_timer_trigger
+    stz wJoyInput
+    stz wJoyInput + 1
+    stz wJoyPressed
+    stz wJoyPressed + 1
+
+    delay_set joy_delay, JOY_TIMER_DELAY
 
     game_loop:
         ; TODO: Gen data of register to be renewed & mem to change BG & OBJ data
@@ -73,12 +76,12 @@ Reset:
         ; react to input
         jsr joy_update
 
-        lda joy_timer_trigger
+        delay_check joy_delay
         beq @wait ; Skip trigger if not 1
-        stz joy_timer_trigger ; consume trigger / rst
         jsr joy_pressed_update
         stz wJoyPressed
         stz wJoyPressed + 1  ; clear the joy buffer after
+        delay_set joy_delay, JOY_TIMER_DELAY
 
         @wait:
         wai ; Wait for NMI
@@ -87,20 +90,7 @@ jmp game_loop
 ; Ticks on frame
 timer_tick:
     ; every second check inputs
-    lda joy_timer
-    dec
-    sta joy_timer
-    bne @done
-
-    @do_joy_update:
-    lda #$1
-    sta joy_timer_trigger
-
-    @reset_timer: 
-    lda #JOY_TIMER_DELAY
-    sta joy_timer
-
-    @done:
+    delay_tick joy_delay
 rts
 
 joy_update:
@@ -187,29 +177,59 @@ generate_random_index:
 		.i16
 rts
 
+X_LIMIT = $8 ; max x-pos before next line
+Y_LIMIT = $2 ; 2 
+
 move_sprite_left:
 lda sprite_x
-sec
-sbc #$10
+beq @limit
+dea
 sta sprite_x
+bra @done
+@limit:
+lda #X_LIMIT
+sta sprite_x
+jsr move_sprite_up
+@done:
 rts
+
 move_sprite_right:
 lda sprite_x
-clc
-adc #$10
+cmp #X_LIMIT
+beq @limit
+ina
 sta sprite_x
+bra @done
+@limit:
+lda #$0
+sta sprite_x
+jsr move_sprite_down
+@done:
 rts
+
 move_sprite_up:
 lda sprite_y
-sec
-sbc #$10
+beq @limit
+dea
 sta sprite_y
+bra @done
+@limit:
+lda #Y_LIMIT
+sta sprite_y
+@done:
 rts
+
 move_sprite_down:
 lda sprite_y
-clc
-adc #$10
+cmp #Y_LIMIT
+beq @limit
+inc
 sta sprite_y
+bra @done
+@limit:
+lda #0
+sta sprite_y
+@done:
 rts
 
 VBlank:
@@ -341,12 +361,71 @@ rts
 
 update_sprite_pos:
     stz OAMADDL     
-    stz OAMADDH 
-    lda sprite_x
-    sta OAMDATA     ; position
+    stz OAMADDH  ; OAM $0000
+    
     lda sprite_y
-    sta OAMDATA     ; position
+    asl                     ; y*2 for word size
+    tay                     ; sprite_y is x index register
+    ldx screen_pos_table, y ; get table row
+    stx dpTmp0              ; store table row (word)
+
+    lda sprite_x
+    asl             ; sprite_x * 2 for 2 bytes pos: (x,y)
+    tay
+    lda (dpTmp0), y
+    sta OAMDATA                 ; x position
+    iny 
+    lda (dpTmp0), y
+    sta OAMDATA                 ; y  position
 rts
+
+SPT_X = $40
+SPT_Y = $A0
+SPT_W = $10
+SPT_H = $10
+SPT_ENTRIES = $1C ; 28 entries
+SPT_Y_OFFSET_SCALE = 9
+
+
+screen_pos_table:
+.word screen_pos_table_0
+.word screen_pos_table_1
+.word screen_pos_table_2
+
+screen_pos_table_0:
+.byte SPT_X + SPT_W * 0 , SPT_Y + SPT_H * 0
+.byte SPT_X + SPT_W * 1 , SPT_Y + SPT_H * 0
+.byte SPT_X + SPT_W * 2 , SPT_Y + SPT_H * 0
+.byte SPT_X + SPT_W * 3 , SPT_Y + SPT_H * 0
+.byte SPT_X + SPT_W * 4 , SPT_Y + SPT_H * 0
+.byte SPT_X + SPT_W * 5 , SPT_Y + SPT_H * 0
+.byte SPT_X + SPT_W * 6 , SPT_Y + SPT_H * 0
+.byte SPT_X + SPT_W * 7 , SPT_Y + SPT_H * 0
+.byte SPT_X + SPT_W * 8 , SPT_Y + SPT_H * 0
+.byte SPT_X + SPT_W * 9 , SPT_Y + SPT_H * 0
+screen_pos_table_1:
+.byte SPT_X + SPT_W * 0 , SPT_Y + SPT_H * 1
+.byte SPT_X + SPT_W * 1 , SPT_Y + SPT_H * 1
+.byte SPT_X + SPT_W * 2 , SPT_Y + SPT_H * 1
+.byte SPT_X + SPT_W * 3 , SPT_Y + SPT_H * 1
+.byte SPT_X + SPT_W * 4 , SPT_Y + SPT_H * 1
+.byte SPT_X + SPT_W * 5 , SPT_Y + SPT_H * 1
+.byte SPT_X + SPT_W * 6 , SPT_Y + SPT_H * 1
+.byte SPT_X + SPT_W * 7 , SPT_Y + SPT_H * 1
+.byte SPT_X + SPT_W * 8 , SPT_Y + SPT_H * 1
+.byte SPT_X + SPT_W * 9 , SPT_Y + SPT_H * 1
+screen_pos_table_2:
+.byte SPT_X + SPT_W * 0 , SPT_Y + SPT_H * 2
+.byte SPT_X + SPT_W * 1 , SPT_Y + SPT_H * 2
+.byte SPT_X + SPT_W * 2 , SPT_Y + SPT_H * 2
+.byte SPT_X + SPT_W * 3 , SPT_Y + SPT_H * 2
+.byte SPT_X + SPT_W * 4 , SPT_Y + SPT_H * 2
+.byte SPT_X + SPT_W * 5 , SPT_Y + SPT_H * 2
+.byte SPT_X + SPT_W * 6 , SPT_Y + SPT_H * 2
+.byte SPT_X + SPT_W * 7 , SPT_Y + SPT_H * 2
+.byte SPT_X + SPT_W * 8 , SPT_Y + SPT_H * 2
+.byte SPT_X + SPT_W * 9 , SPT_Y + SPT_H * 2
+
 
 register_screen_settings:
     lda #$01 | BG1_16x16
