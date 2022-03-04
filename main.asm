@@ -6,6 +6,7 @@
 .include "snes/graphics.asm"
 .include "snes/joycon.asm"
 .include "base_map.asm"
+.include "delay.asm"
 
 
 .zeropage
@@ -16,14 +17,22 @@ dpTmp3: .res 1, $00
 dpTmp4: .res 1, $00
 dpTmp5: .res 1, $00
 wJoyInput: .res 2, $0000
+wJoyPressed: .res 2, $0000
 mBG1HOFS: .res 1, $00
-sprite_x: .res 1 
-sprite_y: .res 1 
+sprite_x: .res 1, $00
+sprite_y: .res 1, $00
+joy_timer: .res 1, $00
+joy_timer_trigger: .res 1, $00
+
+answer: .res 5, $00
+random_index: .res 2, $0000
 
 SPRITE_X_INIT = $40
 SPRITE_Y_INIT = $A0
 SPRITE_X_MOVE = $10
 SPRITE_Y_MOVE = $10
+
+JOY_TIMER_DELAY = $0F
 
 .code
 ; Follow set up in chapter 23 of manual
@@ -50,53 +59,132 @@ Reset:
     lda #SPRITE_Y_INIT
     sta sprite_y
 
+    ; Generate random word
+    jsr generate_random_index
+
+
+    lda #JOY_TIMER_DELAY
+    sta joy_timer
+    stz joy_timer_trigger
+
     game_loop:
         ; TODO: Gen data of register to be renewed & mem to change BG & OBJ data
         ; aka Update
         ; react to input
         jsr joy_update
+
+        lda joy_timer_trigger
+        beq @wait ; Skip trigger if not 1
+        stz joy_timer_trigger ; consume trigger / rst
+        jsr joy_pressed_update
+        stz wJoyPressed
+        stz wJoyPressed + 1  ; clear the joy buffer after
+
+        @wait:
         wai ; Wait for NMI
 jmp game_loop
 
+; Ticks on frame
+timer_tick:
+    ; every second check inputs
+    lda joy_timer
+    dec
+    sta joy_timer
+    bne @done
+
+    @do_joy_update:
+    lda #$1
+    sta joy_timer_trigger
+
+    @reset_timer: 
+    lda #JOY_TIMER_DELAY
+    sta joy_timer
+
+    @done:
+rts
+
 joy_update:
+    ; Update pressed 
+    lda wJoyInput
+    beq @joy_update_1
+    ora wJoyPressed
+    sta wJoyPressed
+
+    @joy_update_1:
+    lda wJoyInput + 1
+    beq @joy_update_done
+    ora wJoyPressed + 1
+    sta wJoyPressed + 1
+
+    @joy_update_done:
+rts
+
+joy_pressed_update:
     check_x:
-        lda wJoyInput
+        lda wJoyPressed
         bit #<KEY_X
         beq check_L
         ; jsr mercilak_flip_v
     check_L:
-        lda wJoyInput
+        lda wJoyPressed
         bit #<KEY_L
         beq check_R                 ; if not set (is zero) we skip 
         ; jsr scroll_the_screen_left
     check_R:
-        lda wJoyInput
+        lda wJoyPressed
         bit #<KEY_R
         beq check_left              ; if not set (is zero) we skip 
         ; jsr scroll_the_screen_right
 
     ; Check for keys in the high byte
     check_left:
-        lda wJoyInput + 1               
+        lda wJoyPressed + 1               
         bit #>KEY_LEFT              ; check for key
         beq check_up                ; if not set (is zero) we skip 
         jsr move_sprite_left
     check_up:
-        lda wJoyInput + 1               
+        lda wJoyPressed + 1               
         bit #>KEY_UP
         beq check_down
         jsr move_sprite_up
     check_down:
-        lda wJoyInput + 1               
+        lda wJoyPressed + 1               
         bit #>KEY_DOWN
         beq check_right
         jsr move_sprite_down
     check_right:
-        lda wJoyInput + 1               
+        lda wJoyPressed + 1               
         bit #>KEY_RIGHT
         beq endjoycheck
         jsr move_sprite_right
     endjoycheck:
+rts
+
+
+; Modifies variable: random_index
+generate_random_index:
+		; Turn index into address
+		; multiply by 5 to get index
+		; Go be 16 bit
+		.a16
+		.i16
+		rep #$30 ; 16-bit aaccumulator/index
+
+		lda #$00 ; random number from 0-477 TODO
+		sta random_index ; store so we can do 2n + n for 5n
+
+
+		lda random_index 
+		asl              ; double the index
+		clc
+		adc random_index ; add N for 5N
+
+		sta random_index ; store back to random index
+
+		rep #$10
+		sep #$20
+		.a8
+		.i16
 rts
 
 move_sprite_left:
@@ -144,6 +232,8 @@ VBlank:
     joycon_read wJoyInput
 
     jsr update_sprite_pos
+
+    jsr timer_tick
 
     endvblank: 
 rti 
@@ -284,4 +374,20 @@ main_screen_palette:
 main_tiles:
 .incbin "assets/wordle.pic"
 main_tiles_end:
+
+.segment "BANK1"
+common_words:
+.include "words/common5_shuf_478.asm"
+common_words_end:
+common_word_len: .word (common_words_end - common_words)
+
+
+; Define the dictionary bank
+.segment "BANK2"
+dict_a_o:
+.include "words/dict5_a-o_5037.asm"
+
+.segment "BANK3"
+dict_p_z:
+.include "words/dict5_p-z_3460.asm"
 
