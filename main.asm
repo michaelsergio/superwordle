@@ -28,6 +28,9 @@ joy_delay: .tag Delay
 answer: .res 5, $00
 random_index: .res 2, $0000
 
+GUESS_STARTING_ROW = $01 ; Should be 0 when I remove the test word
+guess_row: .res 1, $00
+
 
 JOY_TIMER_DELAY = $0F
 
@@ -50,9 +53,12 @@ Reset:
     lda #(NMI_ON | AUTO_JOY_ON) ; enable NMI Enable and Joycon
     sta NMITIMEN
 
+    lda #GUESS_STARTING_ROW
+    sta guess_row
+
 
     ; Generate random word
-    ; jsr generate_random_index
+    jsr generate_random_index
 
 
     stz wJoyInput
@@ -148,30 +154,28 @@ rts
 
 
 ; Modifies variable: random_index
-; generate_random_index:
-; 		; Turn index into address
-; 		; multiply by 5 to get index
-; 		; Go be 16 bit
-; 		.a16
-; 		.i16
-; 		rep #$30 ; 16-bit aaccumulator/index
+generate_random_index:
+		; Turn index into address
+		; multiply by 5 to get index
+		; Go be 16 bit
+		.a16
+		rep #$30 ; 16-bit aaccumulator/index
 
-; 		lda #$00 ; random number from 0-477 TODO
-; 		sta random_index ; store so we can do 2n + n for 5n
+		lda #$00 ; random number from 0-477 TODO HARDCODED as 0 right now
+		sta random_index ; store so we can do 2n + n for 5n
 
+		lda random_index 
+		asl              ; double the index
+		clc
+		adc random_index ; add N for 5N
 
-; 		lda random_index 
-; 		asl              ; double the index
-; 		clc
-; 		adc random_index ; add N for 5N
+		sta random_index ; store back to random index
 
-; 		sta random_index ; store back to random index
-
-; 		rep #$10
-; 		sep #$20
-; 		.i16
-; 		.a8
-; rts
+        lda #$00    ; clean the 16 bit A register
+		rep #$10
+		sep #$20
+		.a8
+rts
 
 VBlank:
     ; Detect Beginning of VBlank (Appendix B-3)        
