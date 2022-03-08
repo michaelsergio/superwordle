@@ -8,8 +8,9 @@ dpTmp3: .res 1, $00
 dpTmp4: .res 1, $00
 dpTmp5: .res 1, $00
 
-.include "snes/snes_registers.asm"
+.code 
 .include "snes/lorom128.inc"
+.include "snes/snes_registers.asm"
 .include "snes/register_clear.inc"
 .include "snes/graphics.asm"
 .include "snes/joycon.asm"
@@ -27,11 +28,6 @@ joy_delay: .tag Delay
 answer: .res 5, $00
 random_index: .res 2, $0000
 
-
-SPRITE_X_INIT = $0
-SPRITE_Y_INIT = $0
-SPRITE_X_MOVE = $0
-SPRITE_Y_MOVE = $0
 
 JOY_TIMER_DELAY = $0F
 
@@ -54,14 +50,9 @@ Reset:
     lda #(NMI_ON | AUTO_JOY_ON) ; enable NMI Enable and Joycon
     sta NMITIMEN
 
-    ; init sprite
-    lda #SPRITE_X_INIT
-    sta sprite_x
-    lda #SPRITE_Y_INIT
-    sta sprite_y
 
     ; Generate random word
-    jsr generate_random_index
+    ; jsr generate_random_index
 
 
     stz wJoyInput
@@ -86,6 +77,8 @@ Reset:
         stz wJoyPressed      ; reset the joy buffer
         stz wJoyPressed + 1  ; reset the joy buffer (word sized)
         delay_set joy_delay, JOY_TIMER_DELAY    ; reset the timer
+
+        jsr sprite_selector_update_pos
 
         @wait:
         wai ; Wait for NMI
@@ -155,30 +148,30 @@ rts
 
 
 ; Modifies variable: random_index
-generate_random_index:
-		; Turn index into address
-		; multiply by 5 to get index
-		; Go be 16 bit
-		.a16
-		.i16
-		rep #$30 ; 16-bit aaccumulator/index
+; generate_random_index:
+; 		; Turn index into address
+; 		; multiply by 5 to get index
+; 		; Go be 16 bit
+; 		.a16
+; 		.i16
+; 		rep #$30 ; 16-bit aaccumulator/index
 
-		lda #$00 ; random number from 0-477 TODO
-		sta random_index ; store so we can do 2n + n for 5n
+; 		lda #$00 ; random number from 0-477 TODO
+; 		sta random_index ; store so we can do 2n + n for 5n
 
 
-		lda random_index 
-		asl              ; double the index
-		clc
-		adc random_index ; add N for 5N
+; 		lda random_index 
+; 		asl              ; double the index
+; 		clc
+; 		adc random_index ; add N for 5N
 
-		sta random_index ; store back to random index
+; 		sta random_index ; store back to random index
 
-		rep #$10
-		sep #$20
-		.a8
-		.i16
-rts
+; 		rep #$10
+; 		sep #$20
+; 		.i16
+; 		.a8
+; rts
 
 VBlank:
     ; Detect Beginning of VBlank (Appendix B-3)        
@@ -199,11 +192,11 @@ VBlank:
 
     joycon_read wJoyInput
 
+    jsr timer_tick
+
     ; TODO maybe check if sprite is dirty first
     ;   instead of doing this every frame
-    jsr sprite_selector_update_pos
-
-    jsr timer_tick
+    jsr sprite_selector_dma
 
     endvblank: 
 rti 
@@ -257,6 +250,7 @@ setup_video:
     jsr setup_base_tilemap
     jsr setup_alpha_tilemap
     jsr sprite_selector_load
+    jsr sprite_selector_init_oam ; this replaces sprite_selector_load with dma
 
     ; Register initial screen settings
     jsr register_screen_settings
