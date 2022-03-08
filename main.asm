@@ -252,7 +252,7 @@ setup_video:
 
     jsr reset_sprite_table
     jsr setup_base_tilemap
-    jsr setup_alpha_tilemap
+    jsr alpha_map_setup_tiles
     jsr sprite_selector_init_oam ; this replaces sprite_selector_load with dma
     jsr sprite_selector_dma
 

@@ -56,8 +56,8 @@ sprite_selector_dma:
     lda sprite_dirty
     beq not_dirty
 
-    stz OAMADDL     
-    stz OAMADDH  ; OAM Sprite pos $0000
+    stz OAMADDL     ; very important to load OAM address first first    
+    stz OAMADDH     ; OAM Sprite pos $0000
 
     ldx #mOamSprites  ; load label address for ram
     lda #^mOamSprites ; and bank

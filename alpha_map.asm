@@ -14,7 +14,7 @@ MAP_ALPHA = $6000
 ; A less efficient version of guess_pos
 ; Maybe better just to CMP row and  hardcode guess_pos
 ; A: holds row
-guess_pos_with_register_a:
+alpha_map_guess_pos_with_register_a:
     ; branch table for jumps
     beq @case_0
     dec
@@ -30,25 +30,25 @@ guess_pos_with_register_a:
     @default: ; default case fall through to case_0
 
     @case_0:
-    ldx #MAP_ALPHA + ((32 * (0 + 3) + 6) * 2) ; default case
+    ldx #MAP_ALPHA + ((32 * (0 + 3) + 6) * 2) 
     bra @done
     @case_1:
-    ldx #MAP_ALPHA + ((32 * (1 + 3) + 6) * 2) ; default case
+    ldx #MAP_ALPHA + ((32 * (1 + 3) + 6) * 2) 
     bra @done
     @case_2:
-    ldx #MAP_ALPHA + ((32 * (2 + 3) + 6) * 2) ; default case
+    ldx #MAP_ALPHA + ((32 * (2 + 3) + 6) * 2) 
     bra @done
     @case_3:
-    ldx #MAP_ALPHA + ((32 * (3 + 3) + 6) * 2) ; default case
+    ldx #MAP_ALPHA + ((32 * (3 + 3) + 6) * 2) 
     bra @done
     @case_4:
-    ldx #MAP_ALPHA + ((32 * (4 + 3) + 6) * 2) ; default case
+    ldx #MAP_ALPHA + ((32 * (4 + 3) + 6) * 2) 
     bra @done
     @case_5:
-    ldx #MAP_ALPHA + ((32 * (5 + 3) + 6) * 2) ; default case
+    ldx #MAP_ALPHA + ((32 * (5 + 3) + 6) * 2) 
     bra @done
     @done:
-    stx VMADDL  ; destination of vram
+    stx VMADDL  ; store position into vram
 rts
 
 .macro write_str_with_space str
@@ -72,7 +72,7 @@ rts
 .endmacro
 
 
-setup_alpha_tilemap:
+alpha_map_setup_tiles:
     lda #V_INC_1
     sta VMAIN ; VRAM mode word access, inc 1.
 
