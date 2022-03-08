@@ -5,9 +5,13 @@ MAP_ALPHA = $6000
     stx VMADDL  ; destination of vram
 .endmacro
 
+.macro load_row_x row
+    ldx #MAP_ALPHA + ((32 * (row + 3) + 6) * 2)
+.endmacro
+
 ; With respect to the guesses
 .macro guess_pos row
-    ldx #MAP_ALPHA + ((32 * (row + 3) + 6) * 2)
+    load_row_x row
     stx VMADDL  ; destination of vram
 .endmacro
 
@@ -30,23 +34,29 @@ alpha_map_guess_pos_with_register_a:
     @default: ; default case fall through to case_0
 
     @case_0:
-    ldx #MAP_ALPHA + ((32 * (0 + 3) + 6) * 2) 
+    load_row_x 0
     bra @done
+
     @case_1:
-    ldx #MAP_ALPHA + ((32 * (1 + 3) + 6) * 2) 
+    load_row_x 1
     bra @done
+
     @case_2:
-    ldx #MAP_ALPHA + ((32 * (2 + 3) + 6) * 2) 
+    load_row_x 2
     bra @done
+
     @case_3:
-    ldx #MAP_ALPHA + ((32 * (3 + 3) + 6) * 2) 
+    load_row_x 3
     bra @done
+
     @case_4:
-    ldx #MAP_ALPHA + ((32 * (4 + 3) + 6) * 2) 
+    load_row_x 4
     bra @done
+
     @case_5:
-    ldx #MAP_ALPHA + ((32 * (5 + 3) + 6) * 2) 
+    load_row_x 5
     bra @done
+
     @done:
     stx VMADDL  ; store position into vram
 rts
