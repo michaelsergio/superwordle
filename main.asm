@@ -28,10 +28,13 @@ joy_delay: .tag Delay
 answer: .res 5, $00
 random_index: .res 2, $0000
 
-GUESS_STARTING_ROW = $01 ; Should be 0 when I remove the test word
 guess_row: .res 1, $00
+guess_col: .res 1, $00
+
+pressed_queue: .res 1, $00
 
 
+GUESS_STARTING_ROW = $01 ; Should be 0 when I remove the test word
 JOY_TIMER_DELAY = $0F
 
 .code
@@ -55,7 +58,9 @@ Reset:
 
     lda #GUESS_STARTING_ROW
     sta guess_row
+    stz guess_col
 
+    stz pressed_queue
 
     ; Generate random word
     jsr generate_random_index
@@ -127,8 +132,13 @@ joy_pressed_update:
     check_R:
         lda wJoyPressed
         bit #<KEY_R
-        beq check_left              ; if not set (is zero) we skip 
+        beq check_b              ; if not set (is zero) we skip 
     ; Check for keys in the high byte
+    check_b:
+        lda wJoyPressed + 1               
+        bit #>KEY_B                 ; check for key
+        beq check_left              ; if not set (is zero) we skip 
+        jsr on_kb_click
     check_left:
         lda wJoyPressed + 1               
         bit #>KEY_LEFT              ; check for key
@@ -152,6 +162,34 @@ joy_pressed_update:
     endjoycheck:
 rts
 
+on_kb_click:
+    ; Do a reverse lookup for char
+    lda sprite_x
+    lda sprite_y
+    ; put this character in a queue.
+    ; TODO need to check position
+    lda #'X'            ; Fake for now with always X
+    sta pressed_queue
+    ; eventually this char should be drawn to screen
+rts
+
+pressed_queue_char_to_screen:
+    lda pressed_queue 
+    beq @done
+    
+    lda guess_row
+    jsr alpha_map_guess_pos_with_register_a
+    lda pressed_queue 
+    jsr alpha_map_write_char_to_screen ; puts char in A to screen
+
+    lda guess_col
+    inc
+    sta guess_col
+
+    stz pressed_queue               ; Clear the queue
+
+    @done:
+rts
 
 ; Modifies variable: random_index
 generate_random_index:
@@ -202,8 +240,67 @@ VBlank:
     ;   instead of doing this every frame
     jsr sprite_selector_dma
 
+    jsr pressed_queue_char_to_screen
+
     endvblank: 
 rti 
+
+; This is a more classic SNES color palette based on the original controller
+load_snes_color_palette_test:
+    ;A Button: #eb1a1d RED      $7D0C Little Endiant
+    ;B Button: #fece15 YELLOW   $3F0B
+    ;X Button: #0749b4 BLUE     $2059
+    ;Y Button: #008d45 GREEN    $2022
+    ; Button Ring: #717679 DARK GRAY $CE3D
+    ; Main controller: #a8aaaa LIGHT GRAY $B556
+    ; D-Pad: #3c3331: BLACK $C718
+
+
+
+
+
+
+    ; src - https://www.reddit.com/r/emulation/comments/2wnzus/hex_colours_for_snes_controller/
+
+    SNES_PALETTE_ADDR = $10
+
+    load_palette main_screen_palette, SNES_PALETTE_ADDR, $06
+    lda #SNES_PALETTE_ADDR + 1
+    sta CGADD
+
+    lda #$CE
+    sta CGDATA
+    lda #$3D
+    sta CGDATA
+
+    lda #$20
+    sta CGDATA
+    lda #$22
+    sta CGDATA
+
+    lda #$B5
+    sta CGDATA
+    lda #$56
+    sta CGDATA
+
+    lda #$3F
+    sta CGDATA
+    lda #$0B
+    sta CGDATA
+
+    lda #SNES_PALETTE_ADDR + 6
+    sta CGADD
+
+    lda #$7D
+    sta CGDATA
+    lda #$0C
+    sta CGDATA
+    
+    lda #$20
+    sta CGDATA
+    lda #$59
+    sta CGDATA
+rts
 
 setup_video:
     ; Main register settings
@@ -214,6 +311,8 @@ setup_video:
     load_palette main_screen_palette, $00, $06
     ; Have the same palette be shared with the OBJ in Mode 1
     load_palette main_screen_palette, $80, $06
+
+    jsr load_snes_color_palette_test
 
     ; force Black BG by setting first color in first palette to black
     force_black_bg:

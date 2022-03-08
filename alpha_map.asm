@@ -1,9 +1,50 @@
 MAP_ALPHA = $6000
+HIGH_PRI_COLOR_2 = %00100100 
 
 .macro alpha_pos px, py
     ldx #MAP_ALPHA + ((32 * py + px) * 2)
     stx VMADDL  ; destination of vram
 .endmacro
+
+; A: py - row 0-2
+; X: px - col 0-5
+alpha_pos_ax:
+    clc
+    adc #$03
+    tay
+
+    .a16
+    rep #$30 ; 16-bit aaccumulator/index
+    tya
+
+    asl
+    asl
+    asl
+    asl
+    asl
+
+
+    tay
+    txa
+    beq @loop_done
+    tya
+    @loop_add:
+        ina
+        dex
+    bne @loop_add
+
+    @loop_done:
+
+    asl
+    tax
+
+    lda #$0
+    rep #$10
+    sep #$20
+    .a8
+    
+    stx VMADDL  ; store position into vram
+rts
 
 .macro load_row_x row
     ldx #MAP_ALPHA + ((32 * (row + 3) + 6) * 2)
@@ -63,17 +104,33 @@ rts
         beq @done
 
         sta VMDATAL     ; write char name 
-        lda #%00100100  ; high pri | color 2
+        lda #HIGH_PRI_COLOR_2
         sta VMDATAH     ; write status data
         lda #' '        ; hex 20
         sta VMDATAL     ; write char name 
-        lda #%00100100  ; high pri | color 2
+        lda #HIGH_PRI_COLOR_2
         sta VMDATAH     ; write status data
         inx
     bra loop_letters
     @done:
 .endscope
 .endmacro
+
+
+; Writes a character to the next spot in the map
+; A: the character to write
+alpha_map_write_char_to_screen:
+    beq @done
+    ; TODO ; I Should probably DMA this instead
+    sta VMDATAL     ; write char name 
+    lda #HIGH_PRI_COLOR_2
+    sta VMDATAH     ; write status data
+    lda #' '        ; hex 20
+    sta VMDATAL     ; write char name 
+    lda #HIGH_PRI_COLOR_2
+    sta VMDATAH     ; write status data
+    @done:
+rts 
 
 
 alpha_map_setup_tiles:

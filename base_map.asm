@@ -1,3 +1,5 @@
+MAP_BASE = $7C00
+
 .macro base_guess_pos base, row, col
     ldx #base + (((row + 3) * 16) * 2) + 6 + col
     stx VMADDL 
@@ -19,7 +21,7 @@ setup_base_tilemap:
 
     lda #V_INC_1
     sta VMAIN ; VRAM mode word access, inc 1.
-    ldx #$7C00
+    ldx #MAP_BASE
     stx VMADDL ; destination of vram
 
     ; Leave row 0 blank
@@ -31,7 +33,7 @@ setup_base_tilemap:
     bne @first_row
 
     ; Row 1 offset 5 - SUPER WORDLE
-    ldx #$7C00 + ((1 * 16) * 2) + 5 ;*2 to turn addr to word
+    ldx #MAP_BASE + ((1 * 16) * 2) + 5 ;*2 to turn addr to word
     stx VMADDL 
 
     ldx #$08
@@ -45,15 +47,15 @@ setup_base_tilemap:
 
     ; Row 2 offset 3 - SUPER WORDLE
 
-    put_grid_row_at $7C00, 3, 6
-    put_grid_row_at $7C00, 4, 6
-    put_grid_row_at $7C00, 5, 6
-    put_grid_row_at $7C00, 6, 6
-    put_grid_row_at $7C00, 7, 6
-    put_grid_row_at $7C00, 8, 6
+    put_grid_row_at MAP_BASE, 3, 6
+    put_grid_row_at MAP_BASE, 4, 6
+    put_grid_row_at MAP_BASE, 5, 6
+    put_grid_row_at MAP_BASE, 6, 6
+    put_grid_row_at MAP_BASE, 7, 6
+    put_grid_row_at MAP_BASE, 8, 6
 
     ; Row 10 offset 4
-    ldx #$7C00 + ((10 * 16) * 2) + 4
+    ldx #MAP_BASE + ((10 * 16) * 2) + 4
     stx VMADDL 
 
     ; KB Row 1
@@ -65,7 +67,7 @@ setup_base_tilemap:
     bne @kb_1
 
     ; Row 11 offset 4
-    ldx #$7C00 + ((11 * 16) * 2) + 4
+    ldx #MAP_BASE + ((11 * 16) * 2) + 4
     stx VMADDL 
 
     ; KB Row 2
@@ -77,7 +79,7 @@ setup_base_tilemap:
     bne @kb_2
     
     ; Row 12 offset 3
-    ldx #$7C00 + ((12 * 16) * 2) + 3
+    ldx #MAP_BASE + ((12 * 16) * 2) + 3
     stx VMADDL 
 
     ; Enter 
@@ -100,36 +102,36 @@ setup_base_tilemap:
 
     @base_test_color:
 
-    base_guess_pos $7C00, 0, 0
+    base_guess_pos MAP_BASE, 0, 0
     ldy #GUESS_GREEN
     sty VMDATAL
-    base_guess_pos $7C00, 0, 1
+    base_guess_pos MAP_BASE, 0, 1
     ldy #GUESS_YELLOW
     sty VMDATAL
-    base_guess_pos $7C00, 0, 2
+    base_guess_pos MAP_BASE, 0, 2
     ldy #GUESS_DARK_GRAY
     sty VMDATAL
-    base_guess_pos $7C00, 0, 3
+    base_guess_pos MAP_BASE, 0, 3
     ldy #GUESS_DARK_GRAY
     sty VMDATAL
-    base_guess_pos $7C00, 0, 4
+    base_guess_pos MAP_BASE, 0, 4
     ldy #GUESS_DARK_GRAY
     sty VMDATAL
 
     @base_test_kb_color:
-    base_kb_pos $7C00, 1, 1
+    base_kb_pos MAP_BASE, 1, 1
     ldy #GUESS_GREEN
     sty VMDATAL
-    base_kb_pos $7C00, 0, 6
+    base_kb_pos MAP_BASE, 0, 6
     ldy #GUESS_YELLOW
     sty VMDATAL
-    base_kb_pos $7C00, 0, 9
+    base_kb_pos MAP_BASE, 0, 9
     ldy #GUESS_DARK_GRAY
     sty VMDATAL
-    base_kb_pos $7C00, 0, 2
+    base_kb_pos MAP_BASE, 0, 2
     ldy #GUESS_DARK_GRAY
     sty VMDATAL
-    base_kb_pos $7C00, 0, 3
+    base_kb_pos MAP_BASE, 0, 3
     ldy #GUESS_DARK_GRAY
     sty VMDATAL
     
