@@ -9,12 +9,6 @@ MAP_ALPHA = $6000
     ldx #MAP_ALPHA + ((32 * (row + 3) + 6) * 2)
 .endmacro
 
-; With respect to the guesses
-.macro guess_pos row
-    load_row_x row
-    stx VMADDL  ; destination of vram
-.endmacro
-
 ; A less efficient version of guess_pos
 ; Maybe better just to CMP row and  hardcode guess_pos
 ; A: holds row
@@ -96,7 +90,8 @@ alpha_map_setup_tiles:
     write_str_with_space letters_2
 
     ; alpha_pos 6, 3
-    guess_pos 0
+    load_row_x 0
+    stx VMADDL
     write_str_with_space test_word
 rts
 
