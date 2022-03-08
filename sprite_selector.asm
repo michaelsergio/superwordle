@@ -25,9 +25,13 @@ sprite_selector_init_oam:
     lda #SPR_PRIOR_2
     sta mOamSprites + 3 ; selector sprite status
 
-    lda #(SPR_SIZE_LG | SPR_POS_X) << 0         ; Sprite 0 - Size=Large HPosMSB=0
-    ; Every other field should be large with HPosMSB set.
-    sta mOamSpritesHighTable
+    lda #(SPR_SIZE_LG | SPR_POS_X) << 0   ; Sprite 0 - Size=Large HPosMSB=0
+    sta mOamSpritesHighTable        ; Every other field should be large with HPosMSB set.
+
+    ; Set the sprites position 
+    lda #$01 
+    sta sprite_dirty ; set initial sprite as dirty so we can set position
+    jsr sprite_selector_update_pos
 
     ; sprite 1
     stz mOamSprites + 4 * 1 + 0
@@ -81,34 +85,8 @@ sprite_selector_dma:
     stz sprite_dirty
 rts
 
-sprite_selector_load: 
-    lda sprite_dirty
-    beq @not_dirty
-
-    stz OAMADDL     
-    stz OAMADDH     ; write to oam slot 0000 - will autoinc after L/H write
-
-    lda #$00
-    sta OAMDATA     ; position
-    lda #$00
-    sta OAMDATA     ; position
-    lda #$0C
-    sta OAMDATA     ; selector sprite
-    lda #SPR_PRIOR_2
-    sta OAMDATA     ; selector sprite status
-
-    lda #$01
-    sta OAMADDH     ; Swith to high table
-
-    lda #$02         ; Sprite 0 - Size=Large HPosMSB=0
-    sta OAMDATA
-
-    @not_dirty:
-    stz sprite_dirty             ; reset dirty flag
-rts
 
 sprite_selector_update_pos:
-.a8
     ; TODO Check bound conditions for enlarged sprites
     ; normal sprite is addr $180/ $C0w
     ; enlarged sprite is addr $0900 / $480w
@@ -135,36 +113,6 @@ sprite_selector_update_pos:
     @not_dirty:
 rts
 
-sprite_selector_update_pos_old:
-    ; TODO Check bound conditions for enlarged sprites
-    ; normal sprite is addr $180/ $C0w
-    ; enlarged sprite is addr $0900 / $480w
-
-    lda sprite_dirty
-    beq @skip
-
-    stz OAMADDL     
-    stz OAMADDH  ; OAM Sprite pos $0000
-    
-    lda sprite_y                 ; value should be 0-2
-    asl                          ; y*2 for word size: now 0,2,4
-    tay                          ; y index is the offset for which table to use 
-    ldx kb_selector_pos_table, y ; get table row, relative to table
-    stx z:dpTmp0                 ; store table row (word)
-
-    @sprite_selector_x_part:
-    lda sprite_x
-    asl                          ; sprite_x * 2 for 2 bytes pos: (x,y)
-    tay
-    lda (dpTmp0), y
-    sta OAMDATA                  ; x position
-    iny 
-    lda (dpTmp0), y
-    sta OAMDATA                  ; y  position
-
-    stz sprite_dirty
-    @skip:
-rts
 X_LIMIT = $9 ; max x-pos before next line
 Y_LIMIT = $2 ; 2 
 

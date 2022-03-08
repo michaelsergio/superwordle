@@ -249,8 +249,8 @@ setup_video:
     jsr reset_sprite_table
     jsr setup_base_tilemap
     jsr setup_alpha_tilemap
-    jsr sprite_selector_load
     jsr sprite_selector_init_oam ; this replaces sprite_selector_load with dma
+    jsr sprite_selector_dma
 
     ; Register initial screen settings
     jsr register_screen_settings
