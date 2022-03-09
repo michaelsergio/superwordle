@@ -13,8 +13,8 @@ TITLE_WORDLE_X = 5
 TITLE_WORDLE_Y = 2
 
 TITLE_MODE_X = 6
-TITLE_MODE_Y = 8
-TITLE_MODE_Y1 = 9
+TITLE_MODE_Y1 = 8
+TITLE_MODE_Y2 = 9
 
 TITLE_START_X = 3
 TITLE_START_Y = 12
@@ -94,9 +94,9 @@ title_setup_tilemap:
     bne @super_wordle
 
     @difficulies:
-    alpha_pos TITLE_MODE_X, TITLE_MODE_Y
-    write_str text_easy
     alpha_pos TITLE_MODE_X, TITLE_MODE_Y1
+    write_str text_easy
+    alpha_pos TITLE_MODE_X, TITLE_MODE_Y2
     write_str text_hard
 
     @press_start:
