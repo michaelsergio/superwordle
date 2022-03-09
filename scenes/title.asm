@@ -12,6 +12,10 @@ TITLE_WORDLE_VRAM = $20
 TITLE_WORDLE_X = 5
 TITLE_WORDLE_Y = 2
 
+TITLE_BLOCK_VRAM = $04
+TITLE_BLOCK_X = 5
+TITLE_BLOCK_Y = 8
+
 TITLE_MODE_X = 6
 TITLE_MODE_Y1 = 8
 TITLE_MODE_Y2 = 9
@@ -92,6 +96,12 @@ title_setup_tilemap:
         iny                     ; skip two since 16bit char
         dex
     bne @super_wordle
+
+    @block:
+    ldx #MAP_BASE + ((TITLE_BLOCK_Y * 16) * 2) + TITLE_BLOCK_X ; *2 to turn addr to word
+    stx VMADDL 
+    ldy #TITLE_BLOCK_VRAM      ; Location of SU
+    sty VMDATAL             ; Output rest of wordle
 
     @difficulies:
     alpha_pos TITLE_MODE_X, TITLE_MODE_Y1
