@@ -1,5 +1,6 @@
 TOOLS:=~/code/snes/tools
 PCX2SNES:=pcx2snes/pcx2snes
+SNES=~/code/snes/tools/bsnes-plus/bsnes+.app/Contents/MacOS/bsnes
 
 PROGRAM:=wordle
 SOURCES:=main.asm
@@ -27,6 +28,9 @@ $(BIN_DIR)/%.o: $(SOURCES) $(MORE_SOURCES)
 clean: 
 	rm -f *.smc *.o *.lbl *.map *.sym $(BIN_DIR)/*
 
+.PHONY: run
+run: 
+	$(SNES) $(EXECUTABLE)
 
 CPU_SYM:=$(BIN_DIR)/$(PROGRAM).cpu.sym
 .PHONY: debuglabels
