@@ -18,6 +18,7 @@ dpTmp5: .res 1, $00
 .include "alpha_map.asm"
 .include "kb_selector.asm"
 .include "delay.asm"
+.include "palette_snes.asm"
 
 .zeropage
 wJoyInput: .res 2, $0000
@@ -245,62 +246,6 @@ VBlank:
     endvblank: 
 rti 
 
-; This is a more classic SNES color palette based on the original controller
-load_snes_color_palette_test:
-    ;A Button: #eb1a1d RED      $7D0C Little Endiant
-    ;B Button: #fece15 YELLOW   $3F0B
-    ;X Button: #0749b4 BLUE     $2059
-    ;Y Button: #008d45 GREEN    $2022
-    ; Button Ring: #717679 DARK GRAY $CE3D
-    ; Main controller: #a8aaaa LIGHT GRAY $B556
-    ; D-Pad: #3c3331: BLACK $C718
-
-
-
-
-
-
-    ; src - https://www.reddit.com/r/emulation/comments/2wnzus/hex_colours_for_snes_controller/
-
-    SNES_PALETTE_ADDR = $10
-
-    load_palette main_screen_palette, SNES_PALETTE_ADDR, $06
-    lda #SNES_PALETTE_ADDR + 1
-    sta CGADD
-
-    lda #$CE
-    sta CGDATA
-    lda #$3D
-    sta CGDATA
-
-    lda #$20
-    sta CGDATA
-    lda #$22
-    sta CGDATA
-
-    lda #$B5
-    sta CGDATA
-    lda #$56
-    sta CGDATA
-
-    lda #$3F
-    sta CGDATA
-    lda #$0B
-    sta CGDATA
-
-    lda #SNES_PALETTE_ADDR + 6
-    sta CGADD
-
-    lda #$7D
-    sta CGDATA
-    lda #$0C
-    sta CGDATA
-    
-    lda #$20
-    sta CGDATA
-    lda #$59
-    sta CGDATA
-rts
 
 setup_video:
     ; Main register settings
@@ -312,7 +257,7 @@ setup_video:
     ; Have the same palette be shared with the OBJ in Mode 1
     load_palette main_screen_palette, $80, $06
 
-    jsr load_snes_color_palette_test
+    jsr palette_snes_colors_load_test
 
     ; force Black BG by setting first color in first palette to black
     force_black_bg:
