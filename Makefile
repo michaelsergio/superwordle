@@ -4,7 +4,7 @@ SNES=~/code/snes/tools/bsnes-plus/bsnes+.app/Contents/MacOS/bsnes
 
 PROGRAM:=wordle
 SOURCES:=main.asm
-MORE_SOURCES:=$(wildcard *.asm)
+MORE_SOURCES:=$(wildcard **/*.asm)
 LD_CONFIGS:= snes/lorom128.cfg
 BIN_DIR:=bin
 

@@ -116,6 +116,22 @@ rts
 .endscope
 .endmacro
 
+.macro write_str str
+.scope
+    ldx #$0000
+    loop_letters:
+        lda str, x
+        beq @done
+
+        sta VMDATAL     ; write char name 
+        lda #HIGH_PRI_COLOR_2
+        sta VMDATAH     ; write status data
+        inx
+    bra loop_letters
+    @done:
+.endscope
+.endmacro
+
 
 ; Writes a character to the next spot in the map
 ; A: the character to write

@@ -1,5 +1,14 @@
 MAP_BASE = $7C00
 
+; Colors
+; EMPTY = $00
+GUESS_NO_FILL = $02     ; hasn't guessed yet    ; maps to tilemap $04
+GUESS_GREEN = $04       ; correct guess         ; maps to tilemap $08 
+GUESS_YELLOW = $06      ; letter in word
+GUESS_DARK_GRAY = $08   ; wrong guess
+; LIGHT_GRAY = $0A  ; keyboard color
+
+
 .macro base_guess_pos base, row, col
     ldx #base + (((row + 3) * 16) * 2) + 6 + col
     stx VMADDL 
@@ -15,6 +24,15 @@ MAP_BASE = $7C00
     stx VMADDL 
     jsr put_grid_row
 .endmacro
+
+put_grid_row:
+    ldx #$05
+    @guess_row:
+        ldy #GUESS_NO_FILL
+        sty VMDATAL
+        dex
+    bne @guess_row
+rts
 
 setup_base_tilemap:
     ; We assume the base tilemap has zeros everywhere first
@@ -135,21 +153,4 @@ setup_base_tilemap:
     ldy #GUESS_DARK_GRAY
     sty VMDATAL
     
-rts
-
-; Colors
-; EMPTY = $00
-GUESS_NO_FILL = $02     ; hasn't guessed yet
-GUESS_GREEN = $04       ; correct guess ; maps to tilemap $08 
-GUESS_YELLOW = $06      ; letter in word
-GUESS_DARK_GRAY = $08   ; wrong guess
-; LIGHT_GRAY = $0A  ; keyboard color
-
-put_grid_row:
-    ldx #$05
-    @guess_row:
-        ldy #GUESS_NO_FILL
-        sty VMDATAL
-        dex
-    bne @guess_row
 rts

@@ -19,6 +19,7 @@ dpTmp5: .res 1, $00
 .include "kb_selector.asm"
 .include "delay.asm"
 .include "palette_snes.asm"
+.include "scenes/title.asm"
 
 .zeropage
 wJoyInput: .res 2, $0000
@@ -34,29 +35,15 @@ guess_col: .res 1, $00
 
 pressed_queue: .res 1, $00
 
-
 GUESS_STARTING_ROW = $01 ; Should be 0 when I remove the test word
 JOY_TIMER_DELAY = $0F
 
+VRAM_MAIN_TILES = $0000
+VRAM_FONT = $1000 + $100 ; offset by for ascii non-chars
+
 .code
-; Follow set up in chapter 23 of manual
-Reset:
-    ; Not in manual but part of common cpu setup
-    init_cpu
-    
-    ; Move to force blank and clear all the registers
-    register_clear
 
-    jsr setup_video
-
-    ; Release VBlank
-    lda #FULL_BRIGHT  ; Full brightness
-    sta INIDISP
-
-    ; Display Period begins now
-    lda #(NMI_ON | AUTO_JOY_ON) ; enable NMI Enable and Joycon
-    sta NMITIMEN
-
+game_init:
     lda #GUESS_STARTING_ROW
     sta guess_row
     stz guess_col
@@ -66,13 +53,57 @@ Reset:
     ; Generate random word
     jsr generate_random_index
 
-
     stz wJoyInput
     stz wJoyInput + 1
     stz wJoyPressed
     stz wJoyPressed + 1
 
     delay_set joy_delay, JOY_TIMER_DELAY
+rts
+
+
+; Follow set up in chapter 23 of manual
+Reset:
+    ; Not in manual but part of common cpu setup
+    init_cpu
+    
+    ; Move to force blank and clear all the registers
+    register_clear
+
+    lda #FORCE_BLANK | FULL_BRIGHT  
+    sta INIDISP
+
+    jsr reset_sprite_table
+
+    ; Release VBlank
+    lda #FULL_BRIGHT  ; Full brightness
+    sta INIDISP
+
+    ; Display Period begins now
+    lda #(NMI_ON | AUTO_JOY_ON) ; enable NMI Enable and Joycon
+    sta NMITIMEN
+
+    scene_title:
+
+    jsr title_init
+
+    lda #FORCE_BLANK | FULL_BRIGHT  
+    sta INIDISP
+    jsr title_setup_video
+    lda #FULL_BRIGHT     ; Full brightness
+    sta INIDISP          ; Release VBlank
+
+    jsr title_loop
+
+    scene_game:
+
+    jsr game_init
+
+    lda #FORCE_BLANK | FULL_BRIGHT  
+    sta INIDISP
+    jsr game_setup_video
+    lda #FULL_BRIGHT     ; Full brightness
+    sta INIDISP          ; Release VBlank
 
     game_loop:
         ; TODO: Gen data of register to be renewed & mem to change BG & OBJ data
@@ -85,7 +116,7 @@ Reset:
         ; Every joy_delay, do a pressed event
         delay_check joy_delay
         beq @wait ; Skip trigger if not 1
-        jsr joy_pressed_update
+        jsr game_joy_pressed_update
         stz wJoyPressed      ; reset the joy buffer
         stz wJoyPressed + 1  ; reset the joy buffer (word sized)
         delay_set joy_delay, JOY_TIMER_DELAY    ; reset the timer
@@ -94,7 +125,7 @@ Reset:
 
         @wait:
         wai ; Wait for NMI
-    jmp game_loop ; Loop forever
+    bra game_loop ; Loop forever
 rts 
 
 ; Ticks on frame
@@ -121,7 +152,7 @@ joy_update:
     stz wJoyInput + 1    ; make sure to reset the wJoyInput buffer as well.
 rts
 
-joy_pressed_update:
+game_joy_pressed_update:
     check_x:
         lda wJoyPressed
         bit #<KEY_X
@@ -225,9 +256,24 @@ VBlank:
     ; TODO: transfer renewed data via OAM
     ; TODO: change data settings for BG&OAM that renew picture
 
-    ; Constant Screen Scrolling
-    ;jsr scroll_the_screen_left
+    lda active_scene
+    cmp #Scenes::title
+    beq @title_vblank
+    dec 
+    beq @game_vblank
+    bra endvblank
 
+    @title_vblank: 
+    jsr title_vblank
+    bra endvblank
+
+    @game_vblank:
+    jsr game_vblank
+
+    endvblank: 
+rti 
+
+game_vblank:
     ; Update the screen scroll register
     lda mBG1HOFS
     sta BG1HOFS
@@ -243,11 +289,10 @@ VBlank:
 
     jsr pressed_queue_char_to_screen
 
-    endvblank: 
-rti 
+rts
 
 
-setup_video:
+game_setup_video:
     ; Main register settings
     ; Mode 0 is OK for now
 
@@ -288,24 +333,20 @@ setup_video:
     ; Make call to load_vram
     load_the_main_graphic:
     ;load_block_to_vram main_tiles, $0000, (main_tiles_end - main_tiles)
-    load_block_to_vram main_tiles, $0000, 32 * 16 * 16 * 4 / 8;  tiles * 4bpp * 16x16 / 8
-		
-
-    VRAM_FONT = $1000 + $100 ; offset by for ascii non-chars
+    load_block_to_vram main_tiles, VRAM_MAIN_TILES, 32 * 16 * 16 * 4 / 8;  tiles * 4bpp * 16x16 / 8
     load_block_to_vram font_sloppy_transparent, VRAM_FONT, font_sloppy_transparent_end - font_sloppy_transparent
 
-    jsr reset_sprite_table
     jsr setup_base_tilemap
     jsr alpha_map_setup_tiles
     jsr sprite_selector_init_oam ; this replaces sprite_selector_load with dma
     jsr sprite_selector_dma
 
     ; Register initial screen settings
-    jsr register_screen_settings
+    jsr game_register_screen_settings
 rts
 
 
-register_screen_settings:
+game_register_screen_settings:
     lda #$01 | BG1_16x16 | BG3_TOP
     sta BGMODE  ; mode 1
 
