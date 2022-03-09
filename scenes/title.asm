@@ -4,6 +4,7 @@
 active_scene: .res 1, $00
 title_counter: .res 2, $0000 ; A counter used for RNG
 
+
 TITLE_MAP_BASE = $7C00
 TITLE_WORDLE_CHARS = 8
 TITLE_WORDLE_VRAM = $20
@@ -22,7 +23,6 @@ TITLE_MODE_Y2 = 9
 
 TITLE_START_X = 3
 TITLE_START_Y = 12
-
 
 .code 
 
