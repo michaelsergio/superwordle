@@ -27,8 +27,8 @@ TITLE_START_Y = 12
 .code 
 
 title_init:
-    lda #Scenes::title
-    ; lda #Scenes::game
+    ; lda #Scenes::title
+    lda #Scenes::game ; TODO Replace with other for testing
     sta active_scene
 
     ldx #$0000
@@ -36,10 +36,15 @@ title_init:
 rts
 
 title_setup_video:
+    ; Addresses are in words 
+    clear_tilemap $6000, $800   ; tilemap for bg3
+    clear_tilemap $f800, $800   ; tilemap for bg1
+
     load_palette main_screen_palette, $00, $06
 
     load_block_to_vram main_tiles, VRAM_MAIN_TILES, main_tiles_end - main_tiles
     load_block_to_vram font_sloppy_transparent, VRAM_FONT, font_sloppy_transparent_end - font_sloppy_transparent
+    
     jsr title_setup_tilemap
     jsr title_register_screen_settings
 rts
