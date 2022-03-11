@@ -94,34 +94,6 @@ joy_update:
 rts
 
 
-on_kb_click:
-    ; Do a reverse lookup for char
-    lda sprite_x
-    lda sprite_y
-    ; put this character in a queue.
-    ; TODO need to check position
-    lda #'X'            ; Fake for now with always X
-    sta pressed_queue
-    ; eventually this char should be drawn to screen
-rts
-
-pressed_queue_char_to_screen:
-    lda pressed_queue 
-    beq @done
-    
-    lda guess_row
-    jsr alpha_map_guess_pos_with_register_a
-    lda pressed_queue 
-    jsr alpha_map_write_char_to_screen ; puts char in A to screen
-
-    lda guess_col
-    inc
-    sta guess_col
-
-    stz pressed_queue               ; Clear the queue
-
-    @done:
-rts
 
 ; Modifies variable: random_index
 generate_random_index:

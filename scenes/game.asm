@@ -18,6 +18,8 @@ VRAM_FONT = $1000 + $100 ; offset by for ascii non-chars
 
 GUESS_STARTING_ROW = $01 ; Should be 0 when I remove the test word
 JOY_TIMER_DELAY = $0F
+COL_MAX = $05
+GAME_KEY_CLEAR = '!'
 
 game_init:
     lda #GUESS_STARTING_ROW
@@ -147,6 +149,82 @@ game_vblank:
 
 rts
 
+on_kb_click:
+    ; Do a reverse lookup for char
+    lda sprite_x
+    lda sprite_y
+    ; put this character in a queue.
+    ; TODO need to check position
+    lda #'X'            ; Fake for now with always X
+    sta pressed_queue
+    ; eventually this char should be drawn to screen
+rts
+
+on_clear:
+    lda #GAME_KEY_CLEAR           ; Use ! as a fake clear
+    sta pressed_queue
+rts
+
+
+clear_col:
+
+rts
+
+pressed_queue_char_to_screen:
+    lda pressed_queue 
+    beq @done
+
+
+    @skip_bounds_check_if_clear:
+    lda pressed_queue
+    cmp #GAME_KEY_CLEAR
+    beq @insert_col  
+
+    @bounds_check:
+    lda guess_col
+    cmp #COL_MAX
+    bcs @done       ; branch when > COL_MAX
+
+    @insert_col:
+    lda guess_row
+    ; clc
+    ; adc guess_col
+    jsr alpha_map_guess_pos_with_register_a_as_x ; x now has pos
+    lda guess_col
+    asl         ; mult by 2 for word pos
+    @loop:
+    beq @store  ; Check for 0 first
+        inx     ; increase x by col pos
+        dea     ; dec counter
+    bra @loop
+    @store:
+    stx VMADDL  ; store position into vram
+
+    @clear_check:
+    lda pressed_queue 
+    cmp #GAME_KEY_CLEAR
+    bne @is_character
+    lda #' '                           ; Use an empty char
+    jsr alpha_map_write_char_to_screen ; puts char in A to screen
+
+    lda guess_col
+    beq @done                          ; If col = 0, do not decrement
+    dec                                ; else decrement
+    sta guess_col                      ; and store
+    bra @done
+
+    @is_character:
+    lda pressed_queue                  ; Use this char
+    jsr alpha_map_write_char_to_screen ; puts char in A to screen
+
+    lda guess_col
+    inc
+    sta guess_col
+
+    @done:
+    stz pressed_queue               ; Clear the queue
+rts
+
 game_loop:
     @loop:
         ; TODO: Gen data of register to be renewed & mem to change BG & OBJ data
@@ -183,8 +261,14 @@ game_joy_pressed_update:
     check_R:
         lda wJoyPressed
         bit #<KEY_R
-        beq check_b              ; if not set (is zero) we skip 
+        beq check_a                 ; if not set (is zero) we skip 
+    check_a:
+        lda wJoyPressed                
+        bit #<KEY_A                 ; check for key
+        beq check_b                 ; if not set (is zero) we skip 
+        jsr on_clear
     ; Check for keys in the high byte
+    
     check_b:
         lda wJoyPressed + 1               
         bit #>KEY_B                 ; check for key

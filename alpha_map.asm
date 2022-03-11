@@ -53,7 +53,7 @@ rts
 ; A less efficient version of guess_pos
 ; Maybe better just to CMP row and  hardcode guess_pos
 ; A: holds row
-alpha_map_guess_pos_with_register_a:
+alpha_map_guess_pos_with_register_a_as_x:
     ; branch table for jumps
     beq @case_0
     dec
@@ -66,7 +66,7 @@ alpha_map_guess_pos_with_register_a:
     beq @case_3
     dec
     beq @case_5
-    @default: ; default case fall through to case_0
+    @default: ; default case - fall through to case_0
 
     @case_0:
     load_row_x 0
@@ -93,7 +93,6 @@ alpha_map_guess_pos_with_register_a:
     bra @done
 
     @done:
-    stx VMADDL  ; store position into vram
 rts
 
 .macro write_str_with_space str
