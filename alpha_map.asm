@@ -171,4 +171,7 @@ rts
 letters_0: .asciiz "QWERTYUIOP"
 letters_1: .asciiz "ASDFGHJKL"
 letters_2: .asciiz "ZXCVBNM"
+LETTER_0_COUNT = .sizeof(letters_0) - 1     ; remove null term
+LETTER_1_COUNT = .sizeof(letters_1) - 1
+LETTER_2_COUNT = .sizeof(letters_2) - 1
 test_word: .asciiz "SUPER"

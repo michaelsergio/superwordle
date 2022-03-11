@@ -151,13 +151,48 @@ rts
 
 on_kb_click:
     ; Do a reverse lookup for char
-    lda sprite_x
+    lda sprite_x    
+    tax              ; use x as pos offset
     lda sprite_y
-    ; put this character in a queue.
-    ; TODO need to check position
-    lda #'X'            ; Fake for now with always X
-    sta pressed_queue
-    ; eventually this char should be drawn to screen
+    beq @row_0
+    dec 
+    beq @row_1
+    dec 
+    beq @row_2
+    bra @done        ; wtf?
+
+    @row_0:
+    cmp #LETTER_0_COUNT     
+    bcs @done            ; >= CNT
+    lda letters_0, x
+    bra @store
+    @row_1:
+    cmp #LETTER_1_COUNT     
+    bcs @done            ; >= CNT
+    lda letters_1, x
+    bra @store
+    @row_2:
+    lda sprite_x
+    beq @enter           ; If 0, do enter
+    dea
+    tax                  ; Otherwise, normalize to str range
+    cmp #LETTER_2_COUNT     
+    bcs @do_backspace    ; >= CNT, its a backspace
+    lda letters_2, x
+    bra @store
+
+    @do_backspace:
+    lda #GAME_KEY_CLEAR  ; Set the backspace char
+    bra @store           ; then do normal store logic
+
+    @enter:
+    jsr commit_word
+    bra @done
+
+    @store:
+    sta pressed_queue     ; store the char that will eventually be drawn to screen
+
+    @done:
 rts
 
 on_clear:
@@ -166,8 +201,7 @@ on_clear:
 rts
 
 
-clear_col:
-
+commit_word:
 rts
 
 pressed_queue_char_to_screen:
