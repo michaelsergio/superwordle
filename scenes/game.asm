@@ -57,8 +57,8 @@ rts
 set_answer: 
     phb                 ; push old bank
 
-    ; using the random index.
     ; use the first index.
+    ; TODO use the random index.
     ldx #$00                ; This is the index to use
     stx dpTmp0              ; TODO: store to mul by 6 for each word offset 5+null
 
