@@ -5,6 +5,7 @@ mBG1HOFS: .res 1, $00
 joy_delay: .tag Delay
 
 answer: .res 5, $00
+active_guess: .res 5, $00
 random_index: .res 2, $0000
 
 guess_row: .res 1, $00
@@ -28,8 +29,11 @@ game_init:
 
     stz pressed_queue
 
+    jsr init_active_guess
+
     ; Generate random word
     jsr generate_random_index
+    jsr set_answer
 
     stz wJoyInput
     stz wJoyInput + 1
@@ -37,6 +41,42 @@ game_init:
     stz wJoyPressed + 1
 
     delay_set joy_delay, JOY_TIMER_DELAY
+rts
+
+init_active_guess:
+    ldy #$05                ; Loop counter
+    ldx #$00
+    @loop:
+        lda #' '
+        sta active_guess, x
+        inx
+        dey
+    bne @loop   ; Finish loop when y==0
+rts
+
+set_answer: 
+    phb                 ; push old bank
+
+    ; using the random index.
+    ; use the first index.
+    ldx #$00                ; This is the index to use
+    stx dpTmp0              ; TODO: store to mul by 6 for each word offset 5+null
+
+
+    lda #^common_words   ; Switch DBR to ^common_words data bank
+    pha                 ; push databank
+    plb                 ; pull databank
+
+    ldy #$05            ; Loop counter
+    @loop:
+        lda common_words, x
+        sta answer, x
+        inx
+        dey
+    bne @loop   ; Finish loop when y==0
+
+    plb                 ; restore old data bank
+
 rts
 
 game_setup_video:
@@ -329,4 +369,28 @@ game_joy_pressed_update:
         beq endjoycheck
         jsr sprite_selector_move_right
     endjoycheck:
+rts
+
+; Modifies variable: random_index
+generate_random_index:
+		; Turn index into address
+		; multiply by 5 to get index
+		; Go be 16 bit
+		.a16
+		rep #$30 ; 16-bit aaccumulator/index
+
+		lda #$00 ; random number from 0-477 TODO HARDCODED as 0 right now
+		sta random_index ; store so we can do 2n + n for 5n
+
+		lda random_index 
+		asl              ; double the index
+		clc
+		adc random_index ; add N for 5N
+
+		sta random_index ; store back to random index
+
+        lda #$00    ; clean the 16 bit A register
+		rep #$10
+		sep #$20
+		.a8
 rts

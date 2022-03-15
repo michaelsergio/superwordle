@@ -95,30 +95,6 @@ rts
 
 
 
-; Modifies variable: random_index
-generate_random_index:
-		; Turn index into address
-		; multiply by 5 to get index
-		; Go be 16 bit
-		.a16
-		rep #$30 ; 16-bit aaccumulator/index
-
-		lda #$00 ; random number from 0-477 TODO HARDCODED as 0 right now
-		sta random_index ; store so we can do 2n + n for 5n
-
-		lda random_index 
-		asl              ; double the index
-		clc
-		adc random_index ; add N for 5N
-
-		sta random_index ; store back to random index
-
-        lda #$00    ; clean the 16 bit A register
-		rep #$10
-		sep #$20
-		.a8
-rts
-
 VBlank:
     ; Detect Beginning of VBlank (Appendix B-3)        
     lda RDNMI; Read NMI flag
