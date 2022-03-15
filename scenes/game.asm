@@ -185,7 +185,7 @@ game_vblank:
     ;   instead of doing this every frame
     jsr sprite_selector_dma
 
-    jsr pressed_queue_char_to_screen
+    jsr write_active_guess_to_row
 
 rts
 
@@ -295,7 +295,6 @@ pressed_queue_char_to_screen:
     sta guess_col
 
     @done:
-    jsr write_active_guess_to_row
     stz pressed_queue               ; Clear the queue
 rts
 
@@ -331,6 +330,7 @@ game_loop:
         delay_set joy_delay, JOY_TIMER_DELAY    ; reset the timer
 
         jsr sprite_selector_update_pos
+        jsr pressed_queue_char_to_screen
 
         @wait:
         wai ; Wait for NMI
