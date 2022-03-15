@@ -244,11 +244,11 @@ rts
 commit_word:
 rts
 
-set_vm_address_for_row:
+.macro set_vm_address_for_row
     lda guess_row
     jsr alpha_map_guess_pos_with_register_a_as_x ; x now has pos
     stx VMADDL  ; store position into vram
-rts
+.endmacro
 
 
 ; TODO: put guessed word into memory
@@ -299,7 +299,7 @@ pressed_queue_char_to_screen:
 rts
 
 write_active_guess_to_row:
-    jsr set_vm_address_for_row
+    set_vm_address_for_row
     lda active_guess + 0
     jsr alpha_map_write_char_to_screen ; puts char in A to screen
     lda active_guess + 1
