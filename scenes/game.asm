@@ -244,6 +244,15 @@ rts
 commit_word:
 rts
 
+set_vm_address_for_row:
+    lda guess_row
+    jsr alpha_map_guess_pos_with_register_a_as_x ; x now has pos
+    stx VMADDL  ; store position into vram
+rts
+
+
+; TODO: put guessed word into memory
+;       update the tilemap (DMA?) the whole column at a time
 pressed_queue_char_to_screen:
     lda pressed_queue 
     beq @done
@@ -252,34 +261,22 @@ pressed_queue_char_to_screen:
     @skip_bounds_check_if_clear:
     lda pressed_queue
     cmp #GAME_KEY_CLEAR
-    beq @insert_col  
+    beq @clear_check
 
     @bounds_check:
     lda guess_col
     cmp #COL_MAX
     bcs @done       ; branch when > COL_MAX
 
-    @insert_col:
-    lda guess_row
-    ; clc
-    ; adc guess_col
-    jsr alpha_map_guess_pos_with_register_a_as_x ; x now has pos
-    lda guess_col
-    asl         ; mult by 2 for word pos
-    @loop:
-    beq @store  ; Check for 0 first
-        inx     ; increase x by col pos
-        dea     ; dec counter
-    bra @loop
-    @store:
-    stx VMADDL  ; store position into vram
 
     @clear_check:
     lda pressed_queue 
     cmp #GAME_KEY_CLEAR
     bne @is_character
-    lda #' '                           ; Use an empty char
-    jsr alpha_map_write_char_to_screen ; puts char in A to screen
+    lda guess_col                      
+    tax                                ; use guess col as index for active_guess write
+    lda #' '                           ; Blank
+    sta active_guess, x                ; set active guess char
 
     lda guess_col
     beq @done                          ; If col = 0, do not decrement
@@ -292,15 +289,28 @@ pressed_queue_char_to_screen:
     tax                                ; use guess col as index for active_guess write
     lda pressed_queue                  ; Use this char
     sta active_guess, x                ; set active guess char
-    lda pressed_queue                  
-    jsr alpha_map_write_char_to_screen ; puts char in A to screen
 
     lda guess_col
     inc
     sta guess_col
 
     @done:
+    jsr write_active_guess_to_row
     stz pressed_queue               ; Clear the queue
+rts
+
+write_active_guess_to_row:
+    jsr set_vm_address_for_row
+    lda active_guess + 0
+    jsr alpha_map_write_char_to_screen ; puts char in A to screen
+    lda active_guess + 1
+    jsr alpha_map_write_char_to_screen 
+    lda active_guess + 2
+    jsr alpha_map_write_char_to_screen 
+    lda active_guess + 3
+    jsr alpha_map_write_char_to_screen 
+    lda active_guess + 4
+    jsr alpha_map_write_char_to_screen 
 rts
 
 game_loop:
