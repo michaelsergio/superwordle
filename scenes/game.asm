@@ -47,7 +47,7 @@ init_active_guess:
     ldy #$05                ; Loop counter
     ldx #$00
     @loop:
-        lda #'X'
+        lda #' '
         sta active_guess, x
         inx
         dey
