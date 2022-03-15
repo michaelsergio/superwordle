@@ -288,7 +288,11 @@ pressed_queue_char_to_screen:
     bra @done
 
     @is_character:
+    lda guess_col                      
+    tax                                ; use guess col as index for active_guess write
     lda pressed_queue                  ; Use this char
+    sta active_guess, x                ; set active guess char
+    lda pressed_queue                  
     jsr alpha_map_write_char_to_screen ; puts char in A to screen
 
     lda guess_col
