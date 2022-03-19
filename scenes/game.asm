@@ -20,7 +20,7 @@ VRAM_FONT = $1000 + $100 ; offset by for ascii non-chars
 
 GUESS_STARTING_ROW = $01 ; TODO: Should be 0 when I remove the test word
 JOY_TIMER_DELAY = $08    ; 33 ms per frame, so 33 * 8 = 264ms
-COL_MAX = $05
+COL_MAX = $04
 ROW_MAX = $05   ; 0-5 is 6 rows
 
 
@@ -287,30 +287,43 @@ pressed_queue_char_to_screen:
 
     @bounds_check:
     lda guess_col
-    cmp #COL_MAX
-    bcs @done       ; branch when > COL_MAX
+    cmp #COL_MAX + 1
+    beq @done
+    ; bcs @done       ; branch when > COL_MAX
 
 
     @clear_check:
     lda pressed_queue 
-    cmp #GAME_KEY_CLEAR
-    bne @is_character
-    lda guess_col                      
-    tax                                ; use guess col as index for active_guess write
-    lda #' '                           ; Blank
-    sta active_guess, x                ; set active guess char
+    cmp #GAME_KEY_CLEAR     ; Check if its the clear key
+    bne @is_character       ; If not, go do char key stuff
 
+    @check_if_clear
+    lda guess_col           ; Get current letter with the col
+    tax                     ; Use col as index
+    lda active_guess, x     ; Get the letter
+
+    cmp #' '                ; If current letter is blank,
+    bne @clear_current      ; step back first, else clear current
+
+    @step_back:
     lda guess_col
-    beq @done                          ; If col = 0, do not decrement
-    dec                                ; else decrement
-    sta guess_col                      ; and store
+    beq @clear_current      ; If col = 0, do not decrement
+    dec                     ; else decrement
+    sta guess_col           ; and store
+
+    @clear_current:
+    lda guess_col           
+    tax                     ; use guess col as index for active_guess write
+    lda #' '                ; Blank
+    sta active_guess, x     ; Clear out current active guess character
     bra @done
 
+
     @is_character:
-    lda guess_col                      
-    tax                                ; use guess col as index for active_guess write
-    lda pressed_queue                  ; Use this char
-    sta active_guess, x                ; set active guess char
+    lda guess_col           
+    tax                     ; use guess col as index for active_guess write
+    lda pressed_queue       ; Use this char
+    sta active_guess, x     ; set active guess char
 
     lda guess_col
     inc
