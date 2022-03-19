@@ -1,7 +1,9 @@
+.include "countdown_timer.asm"
+
 .zeropage
 wJoyInput: .res 2, $0000
 wJoyPressed: .res 2, $0000
-debounce_countdown: .res 0, $0
+debounce: .tag CountdownTimer
 
 answer: .res 5, $00
 active_guess: .res 5, $00
@@ -24,26 +26,6 @@ ROW_MAX = $05   ; 0-5 is 6 rows
 
 GAME_KEY_CLEAR = '!'
 
-.macro debounce_reset_countdown
-    lda #JOY_TIMER_DELAY
-    sta debounce_countdown
-.endmacro
-
-.macro debounce_tick
-    lda debounce_countdown
-    beq @debounce_tick_done
-    dec
-    sta debounce_countdown
-    @debounce_tick_done:
-.endmacro
-
-; This means we are ready for input and not counting down.
-; 0 is set when done counting
-; Other when counting down
-.macro debouce_is_ready
-    lda debounce_countdown
-.endmacro
-
 
 game_init:
     lda #GUESS_STARTING_ROW
@@ -63,7 +45,7 @@ game_init:
     stz wJoyPressed
     stz wJoyPressed + 1
 
-    stz debounce_countdown
+    countdown_init debounce
 rts
 
 init_active_guess:
@@ -192,9 +174,9 @@ game_register_screen_settings:
 rts
 
 game_vblank:
-    debounce_tick           ; Move the debounce click forward, if in effect
+    countdown_tick debounce         ; tick the debounce
 
-    joycon_read wJoyInput   ; Store joy update in input buffer
+    joycon_read wJoyInput           ; Store joy update in input buffer
 
     ; TODO: maybe check if sprite is dirty first instead of doing this every frame
     jsr sprite_selector_dma
@@ -335,8 +317,9 @@ pressed_queue_char_to_screen:
     sta guess_col
 
     @done:
-    debounce_reset_countdown        ; When an event is consumed, disallow more input
-    stz pressed_queue               ; Clear the queue
+    countdown_reset debounce, JOY_TIMER_DELAY  ; When an event is consumed
+                                               ; disallow more input
+    stz pressed_queue                          ; Clear the input queue
 rts
 
 write_active_guess_to_row:
@@ -355,8 +338,8 @@ rts
 
 game_loop:
     @loop:
-        debouce_is_ready        ; Check to see if we are accepting input   
-        bne @skip_joy_check     ; If we are counting, skip the joy checks
+        countdown_finished debounce ; Check to see if we are accepting input 
+        bne @skip_joy_check         ; If we are counting, skip the joy checks
 
         jsr joy_update
 
