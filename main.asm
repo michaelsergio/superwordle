@@ -69,12 +69,6 @@ Reset:
 
 rts 
 
-; Ticks on frame
-timer_tick:
-    ; every second check inputs
-    delay_tick joy_delay
-rts
-
 joy_update:
     ; Update pressed 
     lda wJoyInput

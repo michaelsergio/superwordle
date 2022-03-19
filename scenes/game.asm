@@ -1,8 +1,7 @@
 .zeropage
 wJoyInput: .res 2, $0000
 wJoyPressed: .res 2, $0000
-mBG1HOFS: .res 1, $00
-joy_delay: .tag Delay
+debounce_countdown: .res 0, $0
 
 answer: .res 5, $00
 active_guess: .res 5, $00
@@ -18,12 +17,33 @@ VRAM_MAIN_TILES = $0000
 VRAM_FONT = $1000 + $100 ; offset by for ascii non-chars
 
 GUESS_STARTING_ROW = $01 ; TODO: Should be 0 when I remove the test word
-JOY_TIMER_DELAY = $0F
+JOY_TIMER_DELAY = $08    ; 33 ms per frame, so 33 * 8 = 264ms
 COL_MAX = $05
 ROW_MAX = $05   ; 0-5 is 6 rows
 
 
 GAME_KEY_CLEAR = '!'
+
+.macro debounce_reset_countdown
+    lda #JOY_TIMER_DELAY
+    sta debounce_countdown
+.endmacro
+
+.macro debounce_tick
+    lda debounce_countdown
+    beq @debounce_tick_done
+    dec
+    sta debounce_countdown
+    @debounce_tick_done:
+.endmacro
+
+; This means we are ready for input and not counting down.
+; 0 is set when done counting
+; Other when counting down
+.macro debouce_is_ready
+    lda debounce_countdown
+.endmacro
+
 
 game_init:
     lda #GUESS_STARTING_ROW
@@ -43,7 +63,7 @@ game_init:
     stz wJoyPressed
     stz wJoyPressed + 1
 
-    delay_set joy_delay, JOY_TIMER_DELAY
+    stz debounce_countdown
 rts
 
 init_active_guess:
@@ -110,9 +130,6 @@ game_setup_video:
     ;     sta CGDATA
     ;     sta CGDATA
 
-    ; Make sure hscroll is 0
-    stz mBG1HOFS
-
     ; Set VRAM Settings
     ; Transfer VRAM Data via DMA
 
@@ -175,21 +192,14 @@ game_register_screen_settings:
 rts
 
 game_vblank:
-    ; Update the screen scroll register
-    lda mBG1HOFS
-    sta BG1HOFS
-    stz BG1HOFS     ; Write the position to the BG
+    debounce_tick           ; Move the debounce click forward, if in effect
 
-    joycon_read wJoyInput
+    joycon_read wJoyInput   ; Store joy update in input buffer
 
-    jsr timer_tick
-
-    ; TODO maybe check if sprite is dirty first
-    ;   instead of doing this every frame
+    ; TODO: maybe check if sprite is dirty first instead of doing this every frame
     jsr sprite_selector_dma
 
-    jsr write_active_guess_to_row
-
+    jsr write_active_guess_to_row   ; blit guess row to screen
 rts
 
 on_kb_click:
@@ -325,6 +335,7 @@ pressed_queue_char_to_screen:
     sta guess_col
 
     @done:
+    debounce_reset_countdown        ; When an event is consumed, disallow more input
     stz pressed_queue               ; Clear the queue
 rts
 
@@ -344,23 +355,19 @@ rts
 
 game_loop:
     @loop:
-        ; TODO: Gen data of register to be renewed & mem to change BG & OBJ data
-        ; aka Update
-        ; react to input
+        debouce_is_ready        ; Check to see if we are accepting input   
+        bne @skip_joy_check     ; If we are counting, skip the joy checks
+
         jsr joy_update
 
-        ; TODO - perhaps dont allow input until after input event is consumed.
-
-        ; Every joy_delay, do a pressed event
-        delay_check joy_delay
-        beq @wait ; Skip trigger if not 1
         jsr game_joy_pressed_update
         stz wJoyPressed      ; reset the joy buffer
         stz wJoyPressed + 1  ; reset the joy buffer (word sized)
-        delay_set joy_delay, JOY_TIMER_DELAY    ; reset the timer
 
-        jsr sprite_selector_update_pos
         jsr pressed_queue_char_to_screen
+        jsr sprite_selector_update_pos
+
+        @skip_joy_check:
 
         @wait:
         wai ; Wait for NMI
