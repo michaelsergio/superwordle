@@ -17,9 +17,12 @@ pressed_queue: .res 1, $00
 VRAM_MAIN_TILES = $0000
 VRAM_FONT = $1000 + $100 ; offset by for ascii non-chars
 
-GUESS_STARTING_ROW = $01 ; Should be 0 when I remove the test word
+GUESS_STARTING_ROW = $01 ; TODO: Should be 0 when I remove the test word
 JOY_TIMER_DELAY = $0F
 COL_MAX = $05
+ROW_MAX = $05   ; 0-5 is 6 rows
+
+
 GAME_KEY_CLEAR = '!'
 
 game_init:
@@ -242,6 +245,33 @@ rts
 
 
 commit_word:
+    jsr validate_word
+    lda guess_row
+    cmp #ROW_MAX
+    beq @bad_commit
+    @good_commit:
+    inc             ; go to the next guess_row
+    sta guess_row
+    stz guess_col   ; reset the col back to the start
+
+    jsr clear_guess   ; clear guess to prevent trash from being DMA'ed
+
+    bra @done
+    @bad_commit:
+    @done:
+rts
+
+clear_guess:
+    stz active_guess + 0
+    stz active_guess + 1
+    stz active_guess + 2
+    stz active_guess + 3
+    stz active_guess + 4
+rts
+
+
+validate_word:
+    ; TODO fill in
 rts
 
 .macro set_vm_address_for_row
