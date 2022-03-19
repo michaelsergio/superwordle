@@ -283,7 +283,7 @@ pressed_queue_char_to_screen:
     @skip_bounds_check_if_clear:
     lda pressed_queue
     cmp #GAME_KEY_CLEAR
-    beq @clear_check
+    beq @check_clear_key
 
     @bounds_check:
     lda guess_col
@@ -292,12 +292,12 @@ pressed_queue_char_to_screen:
     ; bcs @done       ; branch when > COL_MAX
 
 
-    @clear_check:
+    @check_clear_key:
     lda pressed_queue 
     cmp #GAME_KEY_CLEAR     ; Check if its the clear key
     bne @is_character       ; If not, go do char key stuff
 
-    @check_if_clear
+    @check_if_col_clear:
     lda guess_col           ; Get current letter with the col
     tax                     ; Use col as index
     lda active_guess, x     ; Get the letter
