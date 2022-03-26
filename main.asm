@@ -14,7 +14,6 @@ dpTmp5: .res 1, $00
 .include "snes/register_clear.inc"
 .include "snes/graphics.asm"
 .include "snes/joycon.asm"
-.include "base_map.asm"
 .include "alpha_map.asm"
 .include "kb_selector.asm"
 .include "delay.asm"

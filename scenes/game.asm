@@ -1,4 +1,5 @@
 .include "countdown_timer.asm"
+.include "base_map.asm"
 
 .zeropage
 wJoyInput: .res 2, $0000
@@ -33,6 +34,8 @@ game_init:
     stz guess_col
 
     stz pressed_queue
+
+    jsr mGrid_init
 
     jsr init_active_guess
 
@@ -182,6 +185,9 @@ game_vblank:
     jsr sprite_selector_dma
 
     jsr write_active_guess_to_row   ; blit guess row to screen
+
+    @base_dma_grid_row:
+    base_dma_grid_row 0
 rts
 
 on_kb_click:

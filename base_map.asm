@@ -1,3 +1,9 @@
+.zeropage
+GRID_SIZE = 6 * 5
+GRID_LEN = GRID_SIZE * 2
+mGridColors: .res GRID_LEN, $00 ; word size in memory
+
+.code 
 MAP_BASE = $7C00
 
 ; Colors
@@ -8,9 +14,44 @@ GUESS_YELLOW = $06      ; letter in word
 GUESS_DARK_GRAY = $08   ; wrong guess
 ; LIGHT_GRAY = $0A  ; keyboard color
 
+; Zero the grid
+mGrid_init:
+    ldy #GUESS_GREEN
+    ldx #GRID_LEN - 1
+    @loop:
+    sty mGridColors, x
+    dex
+    dex
+    bpl @loop
+rts
 
-.macro base_guess_pos base, row, col
+.macro base_dma_grid_row row
+    ; TODO fill this in.
+    ; Turn row into mirror offset index
+    ; do for row length 5 words or $A bytes
+    col .set 0
+    offset .set (((row + 3) * 16) * 2) + 6 + col
+    len .set 5 * 2
+
+    ; TODO: SOmething wrong here i think
+    load_block_to_vram mGridColors + offset, MAP_BASE + offset, len
+
+    ; base_guess_pos_x mGridColors, row, 0  ; get index as X
+    ; I assume the length is 5 to DMA
+
+
+    ; TODO replace @base_test_color below with this call
+.endmacro
+
+; Sets X to an offset from base in (row, col)
+.macro base_guess_pos_x base, row, col
     ldx #base + (((row + 3) * 16) * 2) + 6 + col
+.endmacro
+
+
+; Stores base position to VM Address
+.macro base_guess_pos base, row, col
+    base_guess_pos_x base, row, col
     stx VMADDL 
 .endmacro
 
