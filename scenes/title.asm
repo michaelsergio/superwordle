@@ -1,8 +1,10 @@
 .include "scenes.asm"
+.include "mosaic.asm"
 
 .zeropage
 active_scene: .res 1, $00
 title_counter: .res 2, $0000 ; A counter used for RNG
+title_mode_hard: .res 1, $00
 
 
 TITLE_MAP_BASE = $7C00
@@ -27,9 +29,12 @@ TITLE_START_Y = 12
 .code 
 
 title_init:
-    ; lda #Scenes::title
-    lda #Scenes::game ; TODO Replace with other for testing
+    lda #Scenes::title
+    ;lda #Scenes::game ; TODO Replace with other for testing
     sta active_scene
+
+	stz title_mode_hard
+	jsr mosaic_init
 
     ldx #$0000
     stx title_counter
@@ -47,6 +52,8 @@ title_setup_video:
     
     jsr title_setup_tilemap
     jsr title_register_screen_settings
+
+	mosaic_set_enable (BG1_ON + BG3_ON)
 rts
 
 title_register_screen_settings:
@@ -103,7 +110,14 @@ title_setup_tilemap:
     bne @super_wordle
 
     @block:
+	; Easy Mode
     ldx #MAP_BASE + ((TITLE_BLOCK_Y * 16) * 2) + TITLE_BLOCK_X ; *2 to turn addr to word
+	lda title_mode_hard
+	beq @render_block ; stay in easy mode
+	; Change the position if hard mode
+	; Hard mode
+    ldx #MAP_BASE + (((TITLE_BLOCK_Y + 1) * 16) * 2) + TITLE_BLOCK_X ; *2 to turn addr to word
+	@render_block:
     stx VMADDL 
     ldy #TITLE_BLOCK_VRAM      ; Location of SU
     sty VMDATAL             ; Output rest of wordle
@@ -119,9 +133,40 @@ title_setup_tilemap:
     write_str text_press_start
 rts
 
+title_toggle_mode:
+	lda title_mode_hard
+	eor #$01
+	sta title_mode_hard
+rts
 
-tile_joy_pressed_update:
-    ;upon start change scene
+
+title_joy_pressed_update:
+    title_check_b:
+        lda z:wJoyPressed + 1               
+        bit #>KEY_B                 ; check for key
+        beq title_check_left              ; if not set (is zero) we skip 
+        ;jsr undefined_b
+    title_check_left:
+        lda z:wJoyPressed + 1               
+        bit #>KEY_LEFT              ; check for key
+        beq title_check_up                ; if not set (is zero) we skip 
+		jsr mosaic_dec
+    title_check_up:
+        lda z:wJoyPressed + 1               
+        bit #>KEY_UP
+        beq title_check_down
+		jsr title_toggle_mode
+    title_check_down:
+        lda z:wJoyPressed + 1               
+        bit #>KEY_DOWN
+        beq title_check_right
+        jsr title_toggle_mode
+    title_check_right:
+        lda z:wJoyPressed + 1               
+        bit #>KEY_RIGHT
+        beq title_endjoycheck
+		jsr mosaic_inc
+    title_endjoycheck:
 rts
 
 title_loop:
@@ -130,12 +175,18 @@ title_loop:
         inx
         stx title_counter   ; increment this forever
 
+        ; jsr joy_update
+		joycon_read z:wJoyPressed
+		jsr title_joy_pressed_update
+
         lda active_scene
         cmp #Scenes::title
     beq @title_loop_top
 rts 
 
+
 title_vblank:
+    jsr mosaic_draw
 rts
 
 text_press_start: .asciiz "PRESS START TO PLAY"
