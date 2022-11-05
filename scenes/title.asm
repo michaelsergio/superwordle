@@ -29,8 +29,8 @@ TITLE_START_Y = 12
 .code 
 
 title_init:
-    lda #Scenes::title
-    ;lda #Scenes::game ; TODO Replace with other for testing
+    ;lda #Scenes::title
+    lda #Scenes::game ; TODO Replace with other for testing
     sta active_scene
 
 	stz title_mode_hard
