@@ -45,8 +45,8 @@ game_init:
 
     stz wJoyInput
     stz wJoyInput + 1
-    stz wJoyPressed
-    stz wJoyPressed + 1
+    ; stz wJoyPressed
+    ; stz wJoyPressed + 1
 
     countdown_init debounce
 rts
@@ -179,7 +179,8 @@ rts
 game_vblank:
     countdown_tick debounce         ; tick the debounce
 
-    joycon_read wJoyInput           ; Store joy update in input buffer
+    ; joycon_read wJoyInput           ; Store joy update in input buffer
+    joycon_read_joy1_blocking wJoyInput ; Store joy update in input buffer
 
     ; TODO: maybe check if sprite is dirty first instead of doing this every frame
     jsr sprite_selector_dma
@@ -360,11 +361,11 @@ game_loop:
         countdown_finished debounce ; Check to see if we are accepting input 
         bne @skip_joy_check         ; If we are counting, skip the joy checks
 
-        jsr joy_update
+        ;jsr joy_update
 
         jsr game_joy_pressed_update
-        stz wJoyPressed      ; reset the joy buffer
-        stz wJoyPressed + 1  ; reset the joy buffer (word sized)
+        ; stz wJoyPressed      ; reset the joy buffer
+        ; stz wJoyPressed + 1  ; reset the joy buffer (word sized)
 
         jsr pressed_queue_char_to_screen
         jsr sprite_selector_update_pos
@@ -377,51 +378,13 @@ game_loop:
 rts
 
 game_joy_pressed_update:
-    check_x:
-        lda wJoyPressed
-        bit #<KEY_X
-        beq check_L
-    check_L:
-        lda wJoyPressed
-        bit #<KEY_L
-        beq check_R                 ; if not set (is zero) we skip 
-    check_R:
-        lda wJoyPressed
-        bit #<KEY_R
-        beq check_a                 ; if not set (is zero) we skip 
-    check_a:
-        lda wJoyPressed                
-        bit #<KEY_A                 ; check for key
-        beq check_b                 ; if not set (is zero) we skip 
-        jsr on_clear
-    ; Check for keys in the high byte
-    
-    check_b:
-        lda wJoyPressed + 1               
-        bit #>KEY_B                 ; check for key
-        beq check_left              ; if not set (is zero) we skip 
-        jsr on_kb_click
-    check_left:
-        lda wJoyPressed + 1               
-        bit #>KEY_LEFT              ; check for key
-        beq check_up                ; if not set (is zero) we skip 
-        jsr sprite_selector_move_left
-    check_up:
-        lda wJoyPressed + 1               
-        bit #>KEY_UP
-        beq check_down
-        jsr sprite_selector_move_up
-    check_down:
-        lda wJoyPressed + 1               
-        bit #>KEY_DOWN
-        beq check_right
-        jsr sprite_selector_move_down
-    check_right:
-        lda wJoyPressed + 1               
-        bit #>KEY_RIGHT
-        beq endjoycheck
-        jsr sprite_selector_move_right
-    endjoycheck:
+	input_on_left wJoyInput, sprite_selector_move_left
+	input_on_right wJoyInput, sprite_selector_move_right
+	input_on_up wJoyInput, sprite_selector_move_up
+	input_on_down wJoyInput, sprite_selector_move_down
+	input_on_a wJoyInput, on_clear
+	input_on_b wJoyInput, on_kb_click
+	; input_on_x wJoyInput, move_sprite_right
 rts
 
 ; Modifies variable: random_index

@@ -141,32 +141,10 @@ rts
 
 
 title_joy_pressed_update:
-    title_check_b:
-        lda z:wJoyPressed + 1               
-        bit #>KEY_B                 ; check for key
-        beq title_check_left              ; if not set (is zero) we skip 
-        ;jsr undefined_b
-    title_check_left:
-        lda z:wJoyPressed + 1               
-        bit #>KEY_LEFT              ; check for key
-        beq title_check_up                ; if not set (is zero) we skip 
-		jsr mosaic_dec
-    title_check_up:
-        lda z:wJoyPressed + 1               
-        bit #>KEY_UP
-        beq title_check_down
-		jsr title_toggle_mode
-    title_check_down:
-        lda z:wJoyPressed + 1               
-        bit #>KEY_DOWN
-        beq title_check_right
-        jsr title_toggle_mode
-    title_check_right:
-        lda z:wJoyPressed + 1               
-        bit #>KEY_RIGHT
-        beq title_endjoycheck
-		jsr mosaic_inc
-    title_endjoycheck:
+	input_on_right	z:wJoyInput, mosaic_inc
+	input_on_left	z:wJoyInput, mosaic_dec
+	input_on_up		z:wJoyInput, title_toggle_mode
+	input_on_down	z:wJoyInput, title_toggle_mode
 rts
 
 title_loop:
@@ -176,7 +154,7 @@ title_loop:
         stx title_counter   ; increment this forever
 
         ; jsr joy_update
-		joycon_read z:wJoyPressed
+		joycon_read_joy1_blocking z:wJoyInput 
 		jsr title_joy_pressed_update
 
         lda active_scene
