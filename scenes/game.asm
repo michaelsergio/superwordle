@@ -376,13 +376,16 @@ game_loop:
 rts
 
 game_joy_pressed_update:
-	input_on_left wJoyInput, sprite_selector_move_left
-	input_on_right wJoyInput, sprite_selector_move_right
-	input_on_up wJoyInput, sprite_selector_move_up
-	input_on_down wJoyInput, sprite_selector_move_down
-	input_on_a wJoyInput, on_clear
-	input_on_b wJoyInput, on_kb_click
-	; input_on_x wJoyInput, move_sprite_right
+    input_on_left wJoyInput, sprite_selector_move_left
+    input_on_right wJoyInput, sprite_selector_move_right
+    input_on_up wJoyInput, sprite_selector_move_up
+    input_on_down wJoyInput, sprite_selector_move_down
+    input_on_a wJoyInput, on_clear
+    input_on_b wJoyInput, on_kb_click
+    ; input_on_x wJoyInput, move_sprite_right
+
+    ; clear the input after consuming
+    joycon_read_joy1_init z:wJoyInput 
 rts
 
 ; Modifies variable: random_index
