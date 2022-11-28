@@ -3,7 +3,7 @@
 
 .zeropage
 wJoyInput: .res 2, $0000
-wJoyPressed: .res 2, $0000
+; wJoyPressed: .res 2, $0000
 debounce: .tag CountdownTimer
 
 answer: .res 5, $00
@@ -35,6 +35,8 @@ game_init:
 
     stz pressed_queue
 
+    joycon_read_joy1_init wJoyInput
+
     jsr mGrid_init
 
     jsr init_active_guess
@@ -43,10 +45,6 @@ game_init:
     jsr generate_random_index
     jsr set_answer
 
-    stz wJoyInput
-    stz wJoyInput + 1
-    ; stz wJoyPressed
-    ; stz wJoyPressed + 1
 
     countdown_init debounce
 rts

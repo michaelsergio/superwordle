@@ -11,7 +11,7 @@ dpTmp5: .res 1, $00
 .code 
 .include "snes/lorom128.inc"
 .include "snes/snes_registers.asm"
-.include "snes/register_clear.inc"
+.include "snes/startup.inc"
 .include "snes/graphics.asm"
 .include "joycon2.asm"
 .include "alpha_map.asm"
@@ -26,10 +26,12 @@ dpTmp5: .res 1, $00
 ; Follow set up in chapter 23 of manual
 Reset:
     ; Not in manual but part of common cpu setup
-    init_cpu
+    startup_init_cpu
     
     ; Move to force blank and clear all the registers
-    register_clear
+    startup_clear_registers
+	; cleanup a bit of memory
+    startup_clear_directpage
 
     lda #FORCE_BLANK | FULL_BRIGHT  
     sta INIDISP
@@ -67,29 +69,44 @@ Reset:
 
         jsr game_loop
 
+	; Reset should never return
+	error_fell_out_off_loop:
+		bra error_fell_out_off_loop
 rts 
 
-joy_update:
-    ; Update pressed 
-    lda wJoyInput
-    beq @joy_update_1   ; skip on no change for easier debugging
-    ora wJoyPressed
-    sta wJoyPressed
+; joy_update:
+;     ; Update pressed 
+;     lda wJoyInput
+;     beq @joy_update_1   ; skip on no change for easier debugging
+;     ora wJoyPressed
+;     sta wJoyPressed
+;
+;     @joy_update_1:
+;     lda wJoyInput + 1
+;     beq @joy_update_done ; skip on no change for easier debugging
+;     ora wJoyPressed + 1
+;     sta wJoyPressed + 1
+;
+;     @joy_update_done:
+;     stz wJoyInput
+;     stz wJoyInput + 1    ; make sure to reset the wJoyInput buffer as well.
+; rts
 
-    @joy_update_1:
-    lda wJoyInput + 1
-    beq @joy_update_done ; skip on no change for easier debugging
-    ora wJoyPressed + 1
-    sta wJoyPressed + 1
-
-    @joy_update_done:
-    stz wJoyInput
-    stz wJoyInput + 1    ; make sure to reset the wJoyInput buffer as well.
-rts
 
 
+;; TODO Replace VBlank comparison with explicit VBlank jump table
+;; Something like:
+;; Scene ID | subroutine
+;; Scenes::title (0) | title_vblank
+;; Scenes::game  (1) | game_vblank
 
 VBlank:
+    ; Push all the registers
+    php ; processor status register
+    pha
+    phx
+    phy
+
     ; Detect Beginning of VBlank (Appendix B-3)        
     lda RDNMI; Read NMI flag
     bpl endvblank ; loop if the MSB is 0 N=0  (positive number)
@@ -100,19 +117,23 @@ VBlank:
 
     lda active_scene
     cmp #Scenes::title
-    beq @title_vblank
+    beq main_title_vblank
     dec 
-    beq @game_vblank
+    beq main_game_vblank
     bra endvblank
 
-    @title_vblank: 
+    main_title_vblank: 
     jsr title_vblank
     bra endvblank
 
-    @game_vblank:
+    main_game_vblank:
     jsr game_vblank
 
     endvblank: 
+    ply
+    plx
+    pla
+    plp
 rti 
 
 .segment "RODATA"

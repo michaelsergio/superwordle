@@ -2,6 +2,12 @@
 ;   lda #(NMI_ON | AUTO_JOY_ON) ; enable VBlank and Controller read
 ;   sta NMITIMEN
 
+; wJoyVar is a 16 bit memory value
+.macro joycon_read_joy1_init wJoyVar
+  ldx #$00
+  stx wJoyVar
+.endmacro
+
 ; Blocks waiting for joypad status to be ready
 .macro joycon_read_joy1_blocking wJoyVar
     joycon_wait_for_ready

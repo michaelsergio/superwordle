@@ -29,12 +29,18 @@ TITLE_START_Y = 12
 .code 
 
 title_init:
-    ;lda #Scenes::title
-    lda #Scenes::game ; TODO Replace with other for testing
+    stz active_scene
+    ldx $0000
+    stx title_counter
+    stz title_mode_hard
+
+    joycon_read_joy1_init z:wJoyInput
+
+    lda #Scenes::title
+    ;lda #Scenes::game ; TODO Replace with other for testing
     sta active_scene
 
-	stz title_mode_hard
-	jsr mosaic_init
+    jsr mosaic_init
 
     ldx #$0000
     stx title_counter
@@ -134,17 +140,20 @@ title_setup_tilemap:
 rts
 
 title_toggle_mode:
-	lda title_mode_hard
-	eor #$01
-	sta title_mode_hard
+    lda title_mode_hard
+    eor #$01
+    sta title_mode_hard
 rts
 
 
 title_joy_pressed_update:
-	input_on_right	z:wJoyInput, mosaic_inc
-	input_on_left	z:wJoyInput, mosaic_dec
-	input_on_up		z:wJoyInput, title_toggle_mode
-	input_on_down	z:wJoyInput, title_toggle_mode
+    input_on_right  z:wJoyInput, mosaic_inc
+    input_on_left   z:wJoyInput, mosaic_dec
+    input_on_up	    z:wJoyInput, title_toggle_mode
+    input_on_down   z:wJoyInput, title_toggle_mode
+
+    ; clear the input after consuming
+    joycon_read_joy1_init z:wJoyInput 
 rts
 
 title_loop:
@@ -154,12 +163,14 @@ title_loop:
         stx title_counter   ; increment this forever
 
         ; jsr joy_update
-		joycon_read_joy1_blocking z:wJoyInput 
-		jsr title_joy_pressed_update
+        joycon_read_joy1_blocking z:wJoyInput 
+        jsr title_joy_pressed_update
 
         lda active_scene
         cmp #Scenes::title
-    beq @title_loop_top
+	bne title_exit_loop
+    bra @title_loop_top
+    title_exit_loop:
 rts 
 
 

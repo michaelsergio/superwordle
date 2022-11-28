@@ -2,7 +2,7 @@
   .local done	    ; Use done as a local symbol
   lda input + high
   bit #key
-  beq done    ; skip if key not assigned
+  beq done    ; skip if key not set
   jsr action
   done:
 .endmacro
