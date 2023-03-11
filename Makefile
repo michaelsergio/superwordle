@@ -1,6 +1,10 @@
+# Makefile reminders 
+# $< First Dependecy
+# $@ Target Name
+
 TOOLS:=~/code/snes/tools
 PCX2SNES:=pcx2snes/pcx2snes
-SNES=~/code/snes/tools/bsnes-plus/bsnes+.app/Contents/MacOS/bsnes
+SNES=$(TOOLS)/bsnes-plus/bsnes+.app/Contents/MacOS/bsnes
 
 PROGRAM:=wordle
 SOURCES:=main.asm
@@ -10,12 +14,14 @@ BIN_DIR:=bin
 
 OUTPUTS := $(SOURCES:.asm=.o)
 OUTPUTS_BIN := $(OUTPUTS:%=bin/%)
+
 EXECUTABLE := $(BIN_DIR)/$(PROGRAM).smc
 
 all: build $(EXECUTABLE) debuglabels
 
 build: 
 	@mkdir -p $(BIN_DIR)
+	touch $(BIN_DIR)
 
 $(EXECUTABLE): $(OUTPUTS_BIN)
 	ld65 -Ln $(BIN_DIR)/$(PROGRAM).lbl -m $(BIN_DIR)/$(PROGRAM).map -C $(LD_CONFIGS) -o $@ $^
@@ -26,13 +32,11 @@ $(BIN_DIR)/%.o: $(SOURCES) $(MORE_SOURCES)
 # Just the code output cleanup
 .PHONY: clean
 clean: 
-	rm -f *.smc *.o *.lbl *.map *.sym $(BIN_DIR)/*
+	rm -rf *.smc *.o *.lbl *.map *.sym $(BIN_DIR)
 
 .PHONY: run
 run: 
 	$(SNES) $(EXECUTABLE)
 
-CPU_SYM:=$(BIN_DIR)/$(PROGRAM).cpu.sym
-.PHONY: debuglabels
-debuglabels: 
-	$(shell scripts/create_debug_labels.sh $(BIN_DIR)/$(PROGRAM).lbl > $(CPU_SYM))
+debuglabels: $(BIN_DIR)/$(PROGRAM).lbl
+	$(shell scripts/create_debug_labels.sh $< > $(BIN_DIR)/$(PROGRAM).cpu.sym)
